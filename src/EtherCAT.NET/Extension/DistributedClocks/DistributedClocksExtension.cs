@@ -43,7 +43,8 @@ namespace EtherCAT.NET.Extension
                 foreach (var syncManagerPdos in syncManagerPdosSet)
                 {
                     int syncManager = syncManagerPdos.No;
-
+                    if (syncManagerPdos.Pdo == null) Console.WriteLine($"syncManagerPdos.Pdo '{syncManagerPdos.No}' is null!");
+                    else
                     foreach (var smPdo in syncManagerPdos.Pdo)
                     {
                         var index = (ushort)EsiUtilities.ParseHexDecString(smPdo.Value);
@@ -52,7 +53,19 @@ namespace EtherCAT.NET.Extension
                         for (ushort osFactorIndex = 1; osFactorIndex <= currentOsFactor; osFactorIndex++)
                         {
                             var indexOffset = (ushort)(osFactorIndex - 1);
-                            _slaveInfo.DynamicData.Pdos.Where(x => x.Index == index + indexOffset).First().SyncManager = syncManager;
+                            //_slaveInfo.DynamicData.Pdos.Where(x => x.Index == index + indexOffset).First().SyncManager = syncManager;
+
+                            var matchingPdo = _slaveInfo.DynamicData.Pdos.FirstOrDefault(x => x.Index == index + indexOffset);
+
+                            if (matchingPdo != null)
+                            {
+                                matchingPdo.SyncManager = syncManager;
+                                Console.WriteLine("EvaluateSettings: SyncManager set successfully for element with index: " + matchingPdo.Index);
+                            }
+                            else
+                            {
+                                Console.WriteLine("EvaluateSettings: No element found with index: " + (index + indexOffset));
+                            }
                         }
                     }
                 }

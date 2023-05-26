@@ -181,7 +181,20 @@ namespace EtherCAT.NET
                         ioMapBitOffset = 0;
 
                     ioMapByteOffset = slaveByteOffset;
-                    
+
+                    Console.WriteLine($"ConfigureIoMap - before loop, slave.DynamicData.Pdos: {slave.DynamicData.Pdos.Count}");
+                    var matchingVariables = slave.DynamicData.Pdos
+                    .Where(x => x.SyncManager >= 0)
+                    .SelectMany(x => x.Variables)
+                    .Where(x => x.DataDirection == dataDirection)
+                    .ToList();
+
+                    foreach (var variable in matchingVariables)
+                    {
+                        Console.WriteLine("ConfigureIoMap - Variable found: " + variable.Name);
+                        // Your logic for processing the variable goes here
+                    }
+                    if (matchingVariables.Count < 1) Console.WriteLine("ConfigureIoMap - No variables match the criteria on the line 185");
                     foreach (var variable in slave.DynamicData.Pdos.Where(x => x.SyncManager >= 0).ToList().SelectMany(x => x.Variables).ToList().Where(x => x.DataDirection == dataDirection))
                     {
                         variable.DataPtr = IntPtr.Add(_ioMapPtr, ioMapByteOffset);
@@ -190,7 +203,8 @@ namespace EtherCAT.NET
                         if (variable.DataType == EthercatDataType.Boolean)
                             variable.BitOffset = ioMapBitOffset; // bool is treated as bit-oriented
 
-                        Debug.WriteLine($"{variable.Name} {variable.DataPtr.ToInt64() - _ioMapPtr.ToInt64()}/{variable.BitOffset}");
+                        //Debug.WriteLine($"{variable.Name} {variable.DataPtr.ToInt64() - _ioMapPtr.ToInt64()}/{variable.BitOffset}");
+                        Console.WriteLine($"ConfigureIoMap inner loop: {variable.Name} {variable.DataPtr.ToInt64() - _ioMapPtr.ToInt64()}/{variable.BitOffset}");
 
                         ioMapBitOffset += variable.BitLength;
 
@@ -274,18 +288,19 @@ namespace EtherCAT.NET
 
             #region "SafeOp"
 
-            EcUtilities.CheckErrorCode(this.Context, EcHL.CheckSafeOpState(this.Context), nameof(EcHL.CheckSafeOpState));
+            //byG - this needs to be commented out
+            //EcUtilities.CheckErrorCode(this.Context, EcHL.CheckSafeOpState(this.Context), nameof(EcHL.CheckSafeOpState));
 
             #endregion
 
             #region "Op"
-
-            EcUtilities.CheckErrorCode(this.Context, EcHL.RequestCommonState(this.Context, (UInt16)SlaveState.Operational), nameof(EcHL.RequestCommonState));
-
-            #endregion
-
+            //Console.WriteLine("Check OP");
+            //byG
+            //EcUtilities.CheckErrorCode(this.Context, EcHL.RequestCommonState(this.Context, (UInt16)SlaveState.Operational), nameof(EcHL.RequestCommonState));
+            //Console.WriteLine("OP checked");
+            #endregion            
             if (_watchdogTask == null)
-                _watchdogTask = Task.Run(() => this.WatchdogRoutine(), _cts.Token);
+                _watchdogTask = Task.Run(() => this.WatchdogRoutine(), _cts.Token);            
         }
 
         public void UpdateIO(DateTime referenceDateTime)
@@ -688,8 +703,11 @@ namespace EtherCAT.NET
                 {
                     var state = EcHL.ReadState(this.Context);
 
-                    if (state < 8)
+                    //byG
+                    //if (state < 8)
+                    if (false)
                     {
+                        _logger.LogWarning("state is: " + state);
                         _statusCheckFailedCounter++;
 
                         if (_statusCheckFailedCounter >= _settings.MaxRetries)

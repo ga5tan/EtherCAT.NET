@@ -1102,8 +1102,9 @@ int CALLCONV ScanDevices(ecx_contextt* context, char* interfaceName, ec_slave_in
             
         } while (counter-- && (context->slavelist[0].state != (EC_STATE_PRE_OP | EC_STATE_ACK)));
 
-        if (context->slavelist[0].state != (EC_STATE_PRE_OP | EC_STATE_ACK))
-            return -0x0104;
+        /*byG*/
+        /*if (context->slavelist[0].state != (EC_STATE_PRE_OP | EC_STATE_ACK))
+            return -0x0104;*/
 
         // read real CSA value from EEPROM
         for (int slaveIndex = 1; slaveIndex < *context->slavecount + 1; slaveIndex++)

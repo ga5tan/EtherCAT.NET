@@ -1,4 +1,4 @@
-using EtherCAT.NET;
+﻿using EtherCAT.NET;
 using Microsoft.DotNet.PlatformAbstractions;
 using Microsoft.Extensions.Logging;
 using System;
@@ -12,19 +12,31 @@ using System.Collections.Generic;
 using EtherCAT.NET.Infrastructure;
 using EtherCAT.NET.Extension;
 
+using System.Configuration;
+
+
 namespace SampleMaster
 {
     class Program
     {
         static async Task Main(string[] args)
-        {          
+        {
+            System.AppDomain.CurrentDomain.UnhandledException += UnhandledExceptionTrapper;
+
             /* Set interface name. Edit this to suit your needs. */
-            var interfaceName = "eth0";
+            //var interfaceName = "eth0";
+            //var interfaceName = "Wi-Fi";
+            //var interfaceName = "Ethernet 3";
+            var interfaceName = ConfigurationManager.AppSettings["interfaceName"];
+            Console.WriteLine("ver 230526.17");
+            Console.WriteLine("Connecting interfaceName:" + interfaceName + " (case sensitive)");
 
             /* Set ESI location. Make sure it contains ESI files! The default path is /home/{user}/.local/share/ESI */
             var localAppDataPath = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
             var esiDirectoryPath = Path.Combine(localAppDataPath, "ESI");
             Directory.CreateDirectory(esiDirectoryPath);
+
+            Console.WriteLine($"esiDirectoryPath: {esiDirectoryPath}");
 
             /* Copy native file. NOT required in end user scenarios, where EtherCAT.NET package is installed via NuGet! */
             var codeBase = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
@@ -49,6 +61,8 @@ namespace SampleMaster
 
             /* scan available slaves */
             var rootSlave = EcUtilities.ScanDevices(settings.InterfaceName);
+
+            Console.WriteLine($"Slaves: {rootSlave.Descendants().Count()}");
 
             rootSlave.Descendants().ToList().ForEach(slave =>
             {
@@ -93,16 +107,19 @@ namespace SampleMaster
 
             /* create variable references for later use */
             var variables = slaves.SelectMany(child => child.GetVariables()).ToList();
-
+          
             /* create EC Master (short sample) */
             using (var master = new EcMaster(settings, logger))
             {
                 try
                 {
+                    //Console.WriteLine("Pre-Configure");
                     master.Configure(rootSlave);
+                    Console.WriteLine("Master Configured");
                 }
                 catch (Exception ex)
                 {
+                    Console.WriteLine(EcUtilities.GetSlaveStateDescription(master.Context, slaves.SelectMany(x => x.Descendants()).ToList()));
                     logger.LogError(ex.Message);
                     throw;
                 }
@@ -111,34 +128,93 @@ namespace SampleMaster
                 var random = new Random();
                 var cts = new CancellationTokenSource();
 
+                //byG
+
+                //var myOutputs = new DigitalOut(slaves[0]);
+
+                //var myVariables = slaves[0].DynamicData.Pdos;                
+                //var variable0 = variables[0];
+
+                //message = new StringBuilder();
+                //foreach (var pdo in slaves[0].DynamicData.Pdos)
+                //{
+
+                //    foreach (var variable in pdo.Variables)
+                //    {
+                //        message.AppendLine($"pdoName '{pdo.Name}' variableName: '{variable.Name}', DataPtr: '{variable.DataPtr.ToInt64()}'");
+                //    }
+                //}
+                //logger.LogInformation(message.ToString().TrimEnd());
+
+                //var pdoAnalogIn = slaves[0].DynamicData.Pdos;
+                //var varAnalogIn = pdoAnalogIn[0].Variables.Where(x => x.Name == "Statusword").First();                
+                //Console.WriteLine($"Statusword is: {varAnalogIn.DataPtr}");
+
+                //unsafe
+                //{
+                //    Span<int> myVariableSpan = new Span<int>(varAnalogIn.DataPtr.ToPointer(), 1);
+                //    myVariableSpan[0] ^= 1UL << varAnalogIn.BitOffset;
+                //}
+
+                //unsafe
+                //{
+                //    void* data = varAnalogIn.DataPtr.ToPointer();
+                //    int bitmask = (1 << varAnalogIn.BitLength) - 1;
+                //    int shift = (*(int*)data >> varAnalogIn.BitOffset) & bitmask;
+                //    short analogIn = (short)shift;
+                //    logger.LogInformation($"Statusword is: {analogIn}");
+                //}
                 var task = Task.Run(() =>
                 {
                     var sleepTime = 1000 / (int)settings.CycleFrequency;
+                    sleepTime = 3000;
+                    Console.WriteLine($"sleepTime: {sleepTime}");
 
                     while (!cts.IsCancellationRequested)
+                    //while (true)
                     {
+                        //Console.WriteLine("master.UpdateIO start");
                         master.UpdateIO(DateTime.UtcNow);
+                        //Console.WriteLine("master.UpdateIO end");
 
-                        unsafe
+                        message = new StringBuilder();
+                        foreach (var pdo in slaves[0].DynamicData.Pdos)
                         {
-                            if (variables.Any())
+
+                            foreach (var variable in pdo.Variables)
                             {
-                                var myVariableSpan = new Span<int>(variables.First().DataPtr.ToPointer(), 1);
-                                myVariableSpan[0] = random.Next(0, 100);                              
+                                if (variable.DataPtr.ToInt32()!=0) message.AppendLine($"pdoName '{pdo.Name}' variableName: '{variable.Name}', DataPtr: '{variable.DataPtr.ToInt64()}'");
                             }
                         }
+                        if (message.Length < 1) message.AppendLine("No nonzero DataPtrs");
+                        logger.LogInformation(message.ToString().TrimEnd());
 
+                        //unsafe
+                        //{
+                        //    if (variables.Any())
+                        //    {
+                        //        var myVariableSpan = new Span<int>(variables.First().DataPtr.ToPointer(), 1);
+                        //        myVariableSpan[0] = random.Next(0, 100);                              
+                        //    }
+                        //}
+
+                        //varAnalogIn = pdoAnalogIn[0].Variables.Where(x => x.Name == "Statusword").First();
+                        //Console.WriteLine($"Statusword is: {varAnalogIn.DataPtr}");
+
+
+                        //Console.WriteLine("sleeping");
                         Thread.Sleep(sleepTime);
                     }
                 }, cts.Token);
 
+                Console.WriteLine("waiting for the key...");
                 /* wait for stop signal */
                 Console.ReadKey(true);
 
                 cts.Cancel();
                 await task;
             }
-
+            Console.WriteLine("return");
             return; /* remove this to run real world sample*/
 
             /* create EC Master (real world sample) */
@@ -267,6 +343,16 @@ namespace SampleMaster
                 cts.Cancel();
                 await task;
             }
+        }
+
+        static void UnhandledExceptionTrapper(object sender, UnhandledExceptionEventArgs e)
+        {
+            Console.WriteLine("\n\nApplication failed with unhandled exception:");
+            Console.WriteLine("----------------------------------------------");
+            Console.WriteLine(e.ExceptionObject.ToString());
+            Console.WriteLine("\n\nPress Enter to continue");
+            Console.ReadLine();
+            Environment.Exit(1);
         }
     }
 }

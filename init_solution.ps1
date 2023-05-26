@@ -1,11 +1,13 @@
 Write-Host "Updating Git submodule."
-git submodule update --init --recursive --quiet
+#git submodule update --init --recursive --quiet
 
 # x86
 Write-Host "Creating native x86 project."
 $path = "$($PSScriptRoot)/artifacts/bin32"
 New-Item -Force -ItemType directory -Path $path
 Set-Location -Path $path
+
+$IsWindows = $true;
 
 if ($IsWindows)
 {

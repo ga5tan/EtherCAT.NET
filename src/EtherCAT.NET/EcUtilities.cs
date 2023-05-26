@@ -178,6 +178,7 @@ namespace EtherCAT.NET
                         break;
                 }
 
+                Console.WriteLine($"CreateDynamicData foreach (ln 181)");
                 foreach (var pdoType in pdoTypes)
                 {
                     var osMax = Convert.ToUInt16(pdoType.OSMax);
@@ -188,12 +189,14 @@ namespace EtherCAT.NET
                         var pdoIndex = (ushort)EsiUtilities.ParseHexDecString(pdoType.Index.Value);
                         var syncManager = pdoType.SmSpecified ? pdoType.Sm : -1;
 
+                        Console.WriteLine($"new SlavePdo osMax0(pdoName: {pdoName}, pdoIndex: {pdoIndex}, osMax: {osMax}, pdoType.Fixed: {pdoType.Fixed}, pdoType.Mandatory: {pdoType.Mandatory}, syncManager: {syncManager}");
+
                         var slavePdo = new SlavePdo(slave, pdoName, pdoIndex, osMax, pdoType.Fixed, pdoType.Mandatory, syncManager);
 
                         pdos.Add(slavePdo);
 
                         var slaveVariables = pdoType.Entry.Select(x =>
-                        {
+                        {                            
                             var variableIndex = (ushort)EsiUtilities.ParseHexDecString(x.Index.Value);
                             var subIndex = (byte)EsiUtilities.ParseHexDecString(x.SubIndex);
                             //// Improve. What about -1 if SubIndex does not exist?
@@ -211,6 +214,7 @@ namespace EtherCAT.NET
                             var syncManager = pdoType.SmSpecified ? pdoType.Sm : -1;
                             var indexOffset_Tmp = indexOffset;
 
+                            Console.WriteLine($"new SlavePdo else(pdoName: {pdoName}, pdoIndex: {pdoIndex}, osMax: {osMax}, pdoType.Fixed: {pdoType.Fixed}, pdoType.Mandatory: {pdoType.Mandatory}, syncManager: {syncManager}");
                             var slavePdo = new SlavePdo(slave, pdoName, pdoIndex, osMax, pdoType.Fixed, pdoType.Mandatory, syncManager);
 
                             pdos.Add(slavePdo);

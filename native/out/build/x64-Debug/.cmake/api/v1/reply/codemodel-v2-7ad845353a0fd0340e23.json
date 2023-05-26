@@ -1,0 +1,230 @@
+{
+	"configurations" : 
+	[
+		{
+			"directories" : 
+			[
+				{
+					"build" : ".",
+					"childIndexes" : 
+					[
+						1,
+						5
+					],
+					"hasInstallRule" : true,
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.14"
+					},
+					"projectIndex" : 0,
+					"source" : "."
+				},
+				{
+					"build" : "SOEM",
+					"childIndexes" : 
+					[
+						2,
+						3,
+						4
+					],
+					"hasInstallRule" : true,
+					"minimumCMakeVersion" : 
+					{
+						"string" : "2.8.4"
+					},
+					"parentIndex" : 0,
+					"projectIndex" : 1,
+					"source" : "SOEM",
+					"targetIndexes" : 
+					[
+						3
+					]
+				},
+				{
+					"build" : "SOEM/test/linux/slaveinfo",
+					"hasInstallRule" : true,
+					"minimumCMakeVersion" : 
+					{
+						"string" : "2.8.4"
+					},
+					"parentIndex" : 1,
+					"projectIndex" : 1,
+					"source" : "SOEM/test/linux/slaveinfo",
+					"targetIndexes" : 
+					[
+						2
+					]
+				},
+				{
+					"build" : "SOEM/test/linux/eepromtool",
+					"hasInstallRule" : true,
+					"minimumCMakeVersion" : 
+					{
+						"string" : "2.8.4"
+					},
+					"parentIndex" : 1,
+					"projectIndex" : 1,
+					"source" : "SOEM/test/linux/eepromtool",
+					"targetIndexes" : 
+					[
+						0
+					]
+				},
+				{
+					"build" : "SOEM/test/linux/simple_test",
+					"hasInstallRule" : true,
+					"minimumCMakeVersion" : 
+					{
+						"string" : "2.8.4"
+					},
+					"parentIndex" : 1,
+					"projectIndex" : 1,
+					"source" : "SOEM/test/linux/simple_test",
+					"targetIndexes" : 
+					[
+						1
+					]
+				},
+				{
+					"build" : "SOEM_wrapper",
+					"childIndexes" : 
+					[
+						6
+					],
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.14"
+					},
+					"parentIndex" : 0,
+					"projectIndex" : 0,
+					"source" : "SOEM_wrapper",
+					"targetIndexes" : 
+					[
+						4
+					]
+				},
+				{
+					"build" : "SOEM_wrapper/virtDev",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "2.8.4"
+					},
+					"parentIndex" : 5,
+					"projectIndex" : 2,
+					"source" : "SOEM_wrapper/virtDev",
+					"targetIndexes" : 
+					[
+						5
+					]
+				}
+			],
+			"name" : "Debug",
+			"projects" : 
+			[
+				{
+					"childIndexes" : 
+					[
+						1,
+						2
+					],
+					"directoryIndexes" : 
+					[
+						0,
+						5
+					],
+					"name" : "SoemWrapper",
+					"targetIndexes" : 
+					[
+						4
+					]
+				},
+				{
+					"directoryIndexes" : 
+					[
+						1,
+						2,
+						3,
+						4
+					],
+					"name" : "SOEM",
+					"parentIndex" : 0,
+					"targetIndexes" : 
+					[
+						0,
+						1,
+						2,
+						3
+					]
+				},
+				{
+					"directoryIndexes" : 
+					[
+						6
+					],
+					"name" : "virtDev",
+					"parentIndex" : 0,
+					"targetIndexes" : 
+					[
+						5
+					]
+				}
+			],
+			"targets" : 
+			[
+				{
+					"directoryIndex" : 3,
+					"id" : "eepromtool::@f2146db82322ef203f26",
+					"jsonFile" : "target-eepromtool-Debug-5d9777d8d96b52ed95d2.json",
+					"name" : "eepromtool",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 4,
+					"id" : "simple_test::@b1fe97f86c8d1bffda05",
+					"jsonFile" : "target-simple_test-Debug-5d7230a7e4406164323c.json",
+					"name" : "simple_test",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 2,
+					"id" : "slaveinfo::@b5d77afbc05d39d0c88b",
+					"jsonFile" : "target-slaveinfo-Debug-75a83f7332f697048da4.json",
+					"name" : "slaveinfo",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 1,
+					"id" : "soem::@b044d06f1ad8f85a2397",
+					"jsonFile" : "target-soem-Debug-11e2e9350d0095a813f1.json",
+					"name" : "soem",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 5,
+					"id" : "soem_wrapper::@ab254cfcbe2086eee033",
+					"jsonFile" : "target-soem_wrapper-Debug-0759d8b9e22dbcb0e264.json",
+					"name" : "soem_wrapper",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 6,
+					"id" : "virt_dev::@8d04dced50e8d554f73d",
+					"jsonFile" : "target-virt_dev-Debug-eab862be747e75d0fe6d.json",
+					"name" : "virt_dev",
+					"projectIndex" : 2
+				}
+			]
+		}
+	],
+	"kind" : "codemodel",
+	"paths" : 
+	{
+		"build" : "D:/dev/EtherCAT.NET/native/out/build/x64-Debug",
+		"source" : "D:/dev/EtherCAT.NET/native"
+	},
+	"version" : 
+	{
+		"major" : 2,
+		"minor" : 2
+	}
+}
