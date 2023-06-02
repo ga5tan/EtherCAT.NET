@@ -28,7 +28,7 @@ namespace SampleMaster
             //var interfaceName = "Wi-Fi";
             //var interfaceName = "Ethernet 3";
             var interfaceName = ConfigurationManager.AppSettings["interfaceName"];
-            Console.WriteLine("ver 230526.17");
+            Console.WriteLine("ver 230602.01");
             Console.WriteLine("Connecting interfaceName:" + interfaceName + " (case sensitive)");
 
             /* Set ESI location. Make sure it contains ESI files! The default path is /home/{user}/.local/share/ESI */
@@ -146,9 +146,9 @@ namespace SampleMaster
                 //}
                 //logger.LogInformation(message.ToString().TrimEnd());
 
-                //var pdoAnalogIn = slaves[0].DynamicData.Pdos;
-                //var varAnalogIn = pdoAnalogIn[0].Variables.Where(x => x.Name == "Statusword").First();                
-                //Console.WriteLine($"Statusword is: {varAnalogIn.DataPtr}");
+                var pdoAnalogIn = slaves[0].DynamicData.Pdos;
+                var varAnalogIn = pdoAnalogIn[0].Variables.Where(x => x.Name == "Statusword").First();
+                Console.WriteLine($"Statusword is: {varAnalogIn.DataPtr}");
 
                 //unsafe
                 //{
@@ -177,17 +177,17 @@ namespace SampleMaster
                         master.UpdateIO(DateTime.UtcNow);
                         //Console.WriteLine("master.UpdateIO end");
 
-                        message = new StringBuilder();
-                        foreach (var pdo in slaves[0].DynamicData.Pdos)
-                        {
+                        //message = new StringBuilder();
+                        //foreach (var pdo in slaves[0].DynamicData.Pdos)
+                        //{
 
-                            foreach (var variable in pdo.Variables)
-                            {
-                                if (variable.DataPtr.ToInt32()!=0) message.AppendLine($"pdoName '{pdo.Name}' variableName: '{variable.Name}', DataPtr: '{variable.DataPtr.ToInt64()}'");
-                            }
-                        }
-                        if (message.Length < 1) message.AppendLine("No nonzero DataPtrs");
-                        logger.LogInformation(message.ToString().TrimEnd());
+                        //    foreach (var variable in pdo.Variables)
+                        //    {
+                        //        if (variable.DataPtr.ToInt32()!=0) message.AppendLine($"pdoName '{pdo.Name}' variableName: '{variable.Name}', DataPtr: '{variable.DataPtr.ToInt64()}'");
+                        //    }
+                        //}
+                        //if (message.Length < 1) message.AppendLine("No nonzero DataPtrs");
+                        //logger.LogInformation(message.ToString().TrimEnd());
 
                         //unsafe
                         //{
@@ -197,6 +197,13 @@ namespace SampleMaster
                         //        myVariableSpan[0] = random.Next(0, 100);                              
                         //    }
                         //}
+
+                        unsafe
+                        {
+                            Span<int> myVariableSpan = new Span<int>(varAnalogIn.DataPtr.ToPointer(), 1);
+                            //myVariableSpan[0] ^= 1UL << varAnalogIn.BitOffset;
+                            Console.WriteLine($"Statusword is: {myVariableSpan[0]}");
+                        }
 
                         //varAnalogIn = pdoAnalogIn[0].Variables.Where(x => x.Name == "Statusword").First();
                         //Console.WriteLine($"Statusword is: {varAnalogIn.DataPtr}");
