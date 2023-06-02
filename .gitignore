@@ -4,3 +4,6 @@ artifacts/
 
 *.suo
 *.user
+/native/out/build/x64-Debug/.cmake/api/v1/reply/index-2023-04-13T14-59-51-0355.json
+/native/out/build/x64-Debug/.cmake/api/v1/reply/cmakeFiles-v1-3444e7da46434400b216.json
+/native/out/build/x64-Debug/.cmake/api/v1/reply/cache-v2-7b867c7017b004358640.json
