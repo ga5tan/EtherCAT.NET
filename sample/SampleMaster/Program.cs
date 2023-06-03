@@ -28,7 +28,7 @@ namespace SampleMaster
             //var interfaceName = "Wi-Fi";
             //var interfaceName = "Ethernet 3";
             var interfaceName = ConfigurationManager.AppSettings["interfaceName"];
-            Console.WriteLine("ver 230602.01");
+            Console.WriteLine("ver 230603.00");
             Console.WriteLine("Connecting interfaceName:" + interfaceName + " (case sensitive)");
 
             /* Set ESI location. Make sure it contains ESI files! The default path is /home/{user}/.local/share/ESI */
@@ -115,7 +115,7 @@ namespace SampleMaster
                 {
                     //Console.WriteLine("Pre-Configure");
                     master.Configure(rootSlave);
-                    Console.WriteLine("Master Configured");
+                    --Console.WriteLine("Master Configured");
                 }
                 catch (Exception ex)
                 {
@@ -167,7 +167,7 @@ namespace SampleMaster
                 var task = Task.Run(() =>
                 {
                     var sleepTime = 1000 / (int)settings.CycleFrequency;
-                    sleepTime = 3000;
+                    sleepTime = ľ000;
                     Console.WriteLine($"sleepTime: {sleepTime}");
 
                     while (!cts.IsCancellationRequested)
@@ -204,9 +204,6 @@ namespace SampleMaster
                             //myVariableSpan[0] ^= 1UL << varAnalogIn.BitOffset;
                             Console.WriteLine($"Statusword is: {myVariableSpan[0]}");
                         }
-
-                        //varAnalogIn = pdoAnalogIn[0].Variables.Where(x => x.Name == "Statusword").First();
-                        //Console.WriteLine($"Statusword is: {varAnalogIn.DataPtr}");
 
 
                         //Console.WriteLine("sleeping");
