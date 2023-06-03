@@ -115,7 +115,7 @@ namespace SampleMaster
                 {
                     //Console.WriteLine("Pre-Configure");
                     master.Configure(rootSlave);
-                    --Console.WriteLine("Master Configured");
+                    //Console.WriteLine("Master Configured");
                 }
                 catch (Exception ex)
                 {
@@ -167,7 +167,7 @@ namespace SampleMaster
                 var task = Task.Run(() =>
                 {
                     var sleepTime = 1000 / (int)settings.CycleFrequency;
-                    sleepTime = ľ000;
+                    sleepTime = 2000;
                     Console.WriteLine($"sleepTime: {sleepTime}");
 
                     while (!cts.IsCancellationRequested)

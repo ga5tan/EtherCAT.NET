@@ -189,7 +189,7 @@ namespace EtherCAT.NET
                             variable.BitOffset = ioMapBitOffset; // bool is treated as bit-oriented
 
                         //Debug.WriteLine($"{variable.Name} {variable.DataPtr.ToInt64() - _ioMapPtr.ToInt64()}/{variable.BitOffset}");
-                        Console.WriteLine($"ConfigureIoMap inner loop: {variable.Name} {variable.DataPtr.ToInt64() - _ioMapPtr.ToInt64()}/{variable.BitOffset}");
+                        if (variable.DataPtr.ToInt32() != 0) Console.WriteLine($"ConfigureIoMap inner loop: {variable.Name} {variable.DataPtr.ToInt64() - _ioMapPtr.ToInt64()}/{variable.BitOffset}");
 
                         ioMapBitOffset += variable.BitLength;
 

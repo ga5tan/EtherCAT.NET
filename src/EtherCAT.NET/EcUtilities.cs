@@ -188,9 +188,7 @@ namespace EtherCAT.NET
                         var pdoName = pdoType.Name.First().Value;
                         var pdoIndex = (ushort)EsiUtilities.ParseHexDecString(pdoType.Index.Value);
                         var syncManager = pdoType.SmSpecified ? pdoType.Sm : -1;
-
-                        Console.WriteLine($"new SlavePdo osMax0(pdoName: {pdoName}, pdoIndex: {pdoIndex}, osMax: {osMax}, pdoType.Fixed: {pdoType.Fixed}, pdoType.Mandatory: {pdoType.Mandatory}, syncManager: {syncManager}");
-
+                        
                         var slavePdo = new SlavePdo(slave, pdoName, pdoIndex, osMax, pdoType.Fixed, pdoType.Mandatory, syncManager);
 
                         pdos.Add(slavePdo);
