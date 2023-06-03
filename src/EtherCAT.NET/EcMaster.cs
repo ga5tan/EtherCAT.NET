@@ -189,7 +189,7 @@ namespace EtherCAT.NET
                             variable.BitOffset = ioMapBitOffset; // bool is treated as bit-oriented
 
                         //Debug.WriteLine($"{variable.Name} {variable.DataPtr.ToInt64() - _ioMapPtr.ToInt64()}/{variable.BitOffset}");
-                        if (variable.DataPtr.ToInt32() != 0) Console.WriteLine($"ConfigureIoMap inner loop: {variable.Name} {variable.DataPtr.ToInt64() - _ioMapPtr.ToInt64()}/{variable.BitOffset}");
+                        if (variable.DataPtr.ToInt64() != 0) Console.WriteLine($"ConfigureIoMap inner loop: {variable.Name} {variable.DataPtr.ToInt64() - _ioMapPtr.ToInt64()}/{variable.BitOffset}");
 
                         ioMapBitOffset += variable.BitLength;
 
@@ -274,15 +274,15 @@ namespace EtherCAT.NET
             #region "SafeOp"
 
             //byG - this needs to be commented out
-            //EcUtilities.CheckErrorCode(this.Context, EcHL.CheckSafeOpState(this.Context), nameof(EcHL.CheckSafeOpState));
+            EcUtilities.CheckErrorCode(this.Context, EcHL.CheckSafeOpState(this.Context), nameof(EcHL.CheckSafeOpState));
 
             #endregion
 
             #region "Op"
             //Console.WriteLine("Check OP");
             //byG
-            //EcUtilities.CheckErrorCode(this.Context, EcHL.RequestCommonState(this.Context, (UInt16)SlaveState.Operational), nameof(EcHL.RequestCommonState));
-            //Console.WriteLine("OP checked");
+            EcUtilities.CheckErrorCode(this.Context, EcHL.RequestCommonState(this.Context, (UInt16)SlaveState.Operational), nameof(EcHL.RequestCommonState));
+            Console.WriteLine("OP checked");
             #endregion            
             if (_watchdogTask == null)
                 _watchdogTask = Task.Run(() => this.WatchdogRoutine(), _cts.Token);            

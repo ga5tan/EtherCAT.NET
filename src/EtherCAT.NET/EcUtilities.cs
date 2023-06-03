@@ -177,8 +177,7 @@ namespace EtherCAT.NET
                         pdoTypes = slave.Esi.TxPdo;
                         break;
                 }
-
-                Console.WriteLine($"CreateDynamicData foreach (ln 181)");
+                
                 foreach (var pdoType in pdoTypes)
                 {
                     var osMax = Convert.ToUInt16(pdoType.OSMax);
