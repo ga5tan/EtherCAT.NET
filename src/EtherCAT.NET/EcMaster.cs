@@ -273,16 +273,12 @@ namespace EtherCAT.NET
 
             #region "SafeOp"
 
-            //byG - this needs to be commented out
             EcUtilities.CheckErrorCode(this.Context, EcHL.CheckSafeOpState(this.Context), nameof(EcHL.CheckSafeOpState));
 
             #endregion
 
             #region "Op"
-            //Console.WriteLine("Check OP");
-            //byG
             EcUtilities.CheckErrorCode(this.Context, EcHL.RequestCommonState(this.Context, (UInt16)SlaveState.Operational), nameof(EcHL.RequestCommonState));
-            Console.WriteLine("OP checked");
             #endregion            
             if (_watchdogTask == null)
                 _watchdogTask = Task.Run(() => this.WatchdogRoutine(), _cts.Token);            

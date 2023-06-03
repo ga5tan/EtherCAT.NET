@@ -28,7 +28,7 @@ namespace SampleMaster
             //var interfaceName = "Wi-Fi";
             //var interfaceName = "Ethernet 3";
             var interfaceName = ConfigurationManager.AppSettings["interfaceName"];
-            Console.WriteLine("ver 230603.00");
+            Console.WriteLine("ver 230603.06");
             Console.WriteLine("Connecting interfaceName:" + interfaceName + " (case sensitive)");
 
             /* Set ESI location. Make sure it contains ESI files! The default path is /home/{user}/.local/share/ESI */
