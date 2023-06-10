@@ -28,7 +28,7 @@ namespace SampleMaster
             //var interfaceName = "Wi-Fi";
             //var interfaceName = "Ethernet 3";
             var interfaceName = ConfigurationManager.AppSettings["interfaceName"];
-            Console.WriteLine("ver 230603.06");
+            Console.WriteLine("ver 230610.00");
             Console.WriteLine("Connecting interfaceName:" + interfaceName + " (case sensitive)");
 
             /* Set ESI location. Make sure it contains ESI files! The default path is /home/{user}/.local/share/ESI */
@@ -147,8 +147,10 @@ namespace SampleMaster
                 //logger.LogInformation(message.ToString().TrimEnd());
 
                 var pdoAnalogIn = slaves[0].DynamicData.Pdos;
-                var varAnalogIn = pdoAnalogIn[0].Variables.Where(x => x.Name == "Statusword").First();
-                Console.WriteLine($"Statusword is: {varAnalogIn.DataPtr}");
+                var varStatusword = pdoAnalogIn[0].Variables.Where(x => x.Name == "Statusword").First();
+                var varControlword = pdoAnalogIn[0].Variables.Where(x => x.Name == "Controlword").First();
+                Console.WriteLine($"Statusword Ptr is: {varStatusword.DataPtr}");
+                Console.WriteLine($"Controlword Ptr is: {varControlword.DataPtr}");
 
                 //unsafe
                 //{
@@ -198,11 +200,20 @@ namespace SampleMaster
                         //    }
                         //}
 
+                        //unsafe
+                        //{
+                        //    Span<int> myVariableSpan = new Span<int>(varStatusword.DataPtr.ToPointer(), 1);
+                        //    //myVariableSpan[0] ^= 1UL << varAnalogIn.BitOffset;
+                        //    Console.WriteLine($"Statusword is: {myVariableSpan[0]}");
+                        //}
+
                         unsafe
                         {
-                            Span<int> myVariableSpan = new Span<int>(varAnalogIn.DataPtr.ToPointer(), 1);
-                            //myVariableSpan[0] ^= 1UL << varAnalogIn.BitOffset;
-                            Console.WriteLine($"Statusword is: {myVariableSpan[0]}");
+                            void* data = varStatusword.DataPtr.ToPointer();
+                            int bitmask = (1 << varStatusword.BitLength) - 1;
+                            int shift = (*(int*)data >> varStatusword.BitOffset) & bitmask;
+                            short analogIn = (short)shift;
+                            logger.LogInformation($"Statusword: {analogIn}");
                         }
 
 
