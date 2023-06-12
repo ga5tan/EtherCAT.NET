@@ -28,7 +28,7 @@ namespace SampleMaster
             //var interfaceName = "Wi-Fi";
             //var interfaceName = "Ethernet 3";
             var interfaceName = ConfigurationManager.AppSettings["interfaceName"];
-            Console.WriteLine("ver 230610.00");
+            Console.WriteLine("ver 230612.00");
             Console.WriteLine("Connecting interfaceName:" + interfaceName + " (case sensitive)");
 
             /* Set ESI location. Make sure it contains ESI files! The default path is /home/{user}/.local/share/ESI */
@@ -136,21 +136,26 @@ namespace SampleMaster
                 //var variable0 = variables[0];
 
                 //message = new StringBuilder();
+                //int iCounter = 0;
                 //foreach (var pdo in slaves[0].DynamicData.Pdos)
                 //{
 
                 //    foreach (var variable in pdo.Variables)
                 //    {
-                //        message.AppendLine($"pdoName '{pdo.Name}' variableName: '{variable.Name}', DataPtr: '{variable.DataPtr.ToInt64()}'");
+                //        if (variable.DataPtr.ToInt64() != 0)
+                //            message.AppendLine($"{iCounter}.) '{variable.Name}', Ptr: '{variable.DataPtr.ToInt64()}', Len: {variable.BitLength}, Offset {variable.BitOffset}");
+                //        //message.AppendLine($"{iCounter}.) pdoName '{pdo.Name}' variableName: '{variable.Name}', DataPtr: '{variable.DataPtr.ToInt64()}', Len: {variable.BitLength}");
                 //    }
+                //    iCounter++;
                 //}
                 //logger.LogInformation(message.ToString().TrimEnd());
 
                 var pdoAnalogIn = slaves[0].DynamicData.Pdos;
                 var varStatusword = pdoAnalogIn[0].Variables.Where(x => x.Name == "Statusword").First();
-                var varControlword = pdoAnalogIn[0].Variables.Where(x => x.Name == "Controlword").First();
-                Console.WriteLine($"Statusword Ptr is: {varStatusword.DataPtr}");
-                Console.WriteLine($"Controlword Ptr is: {varControlword.DataPtr}");
+                var varPosActual = pdoAnalogIn[0].Variables.Where(x => x.Name == "Position actual value").First();
+                var varControlword = pdoAnalogIn[4].Variables.Where(x => x.Name == "Controlword").First();
+
+                
 
                 //unsafe
                 //{
@@ -171,6 +176,10 @@ namespace SampleMaster
                     var sleepTime = 1000 / (int)settings.CycleFrequency;
                     sleepTime = 2000;
                     Console.WriteLine($"sleepTime: {sleepTime}");
+
+                    ushort Statusword = 0;
+                    ushort Controlword = 0;
+                    Int32 PositionActual = 0;
 
                     while (!cts.IsCancellationRequested)
                     //while (true)
@@ -202,19 +211,42 @@ namespace SampleMaster
 
                         //unsafe
                         //{
-                        //    Span<int> myVariableSpan = new Span<int>(varStatusword.DataPtr.ToPointer(), 1);
-                        //    //myVariableSpan[0] ^= 1UL << varAnalogIn.BitOffset;
-                        //    Console.WriteLine($"Statusword is: {myVariableSpan[0]}");
+                        //    Span<int> myStatuswordSpan = new Span<int>(varStatusword.DataPtr.ToPointer(), 1);
+                        //    //myVariableSpan[0] ^= 1UL << varStatusword.BitOffset;
+                        //    Console.WriteLine($"Statusword is: {myStatuswordSpan[0]}");
                         //}
 
                         unsafe
                         {
-                            void* data = varStatusword.DataPtr.ToPointer();
-                            int bitmask = (1 << varStatusword.BitLength) - 1;
-                            int shift = (*(int*)data >> varStatusword.BitOffset) & bitmask;
-                            short analogIn = (short)shift;
-                            logger.LogInformation($"Statusword: {analogIn}");
+                            Span<ushort> myStatuswordSpan = new Span<ushort>(varStatusword.DataPtr.ToPointer(), 1);
+                            //myStatuswordSpan[0] ^= 1UL << varStatusword.BitOffset;
+                            if (Statusword != myStatuswordSpan[0])
+                                Console.WriteLine($"Statusword is: {myStatuswordSpan[0]}");
+                            Statusword = myStatuswordSpan[0];
+
+                            Span<ushort> myControlwordSpan = new Span<ushort>(varControlword.DataPtr.ToPointer(), 1);
+                            //myStatuswordSpan[0] ^= 1US << varStatusword.BitOffset;
+                            if (Controlword != myControlwordSpan[0])
+                                Console.WriteLine($"Controlword is: {myControlwordSpan[0]}");
+                            Controlword = myControlwordSpan[0];
+
+                            Span<int> myPosActualSpan = new Span<int>(varPosActual.DataPtr.ToPointer(), 1);
+                            //myPosActualSpan[0] ^= 1UL << varPosActual.BitOffset;
+                            if (PositionActual != myPosActualSpan[0])
+                            Console.WriteLine($"PosActual is: {myPosActualSpan[0]}");
+                            PositionActual = myPosActualSpan[0];
                         }
+
+                        //unsafe
+                        //{
+                        //    void* data = varStatusword.DataPtr.ToPointer();
+                        //    int bitmask = (1 << varStatusword.BitLength) - 1;
+                        //    int shift = (*(int*)data >> varStatusword.BitOffset) & bitmask;
+                        //    ushort myStatusword = (ushort)shift;
+                        //    //if (Statusword != myStatusword) 
+                        //        Console.WriteLine($"Statusword: {myStatusword}");
+                        //    Statusword = myStatusword;
+                        //}
 
 
                         //Console.WriteLine("sleeping");
