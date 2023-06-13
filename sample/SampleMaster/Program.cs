@@ -28,7 +28,7 @@ namespace SampleMaster
             //var interfaceName = "Wi-Fi";
             //var interfaceName = "Ethernet 3";
             var interfaceName = ConfigurationManager.AppSettings["interfaceName"];
-            Console.WriteLine("ver 230612.00");
+            Console.WriteLine("ver 230613.01");
             Console.WriteLine("Connecting interfaceName:" + interfaceName + " (case sensitive)");
 
             /* Set ESI location. Make sure it contains ESI files! The default path is /home/{user}/.local/share/ESI */
@@ -154,8 +154,9 @@ namespace SampleMaster
                 var varStatusword = pdoAnalogIn[0].Variables.Where(x => x.Name == "Statusword").First();
                 var varPosActual = pdoAnalogIn[0].Variables.Where(x => x.Name == "Position actual value").First();
                 var varControlword = pdoAnalogIn[4].Variables.Where(x => x.Name == "Controlword").First();
+                var varTargetPosition = pdoAnalogIn[4].Variables.Where(x => x.Name == "Target position").First();
 
-                
+                //Target position
 
                 //unsafe
                 //{
@@ -180,6 +181,8 @@ namespace SampleMaster
                     ushort Statusword = 0;
                     ushort Controlword = 0;
                     Int32 PositionActual = 0;
+                    Int32 TargetPositionSpan = 0;
+                    var loopCounter = 0;     
 
                     while (!cts.IsCancellationRequested)
                     //while (true)
@@ -194,7 +197,7 @@ namespace SampleMaster
 
                         //    foreach (var variable in pdo.Variables)
                         //    {
-                        //        if (variable.DataPtr.ToInt32()!=0) message.AppendLine($"pdoName '{pdo.Name}' variableName: '{variable.Name}', DataPtr: '{variable.DataPtr.ToInt64()}'");
+                        //        if (variable.DataPtr.ToInt32() != 0) message.AppendLine($"pdoName '{pdo.Name}' variableName: '{variable.Name}', DataPtr: '{variable.DataPtr.ToInt64()}'");
                         //    }
                         //}
                         //if (message.Length < 1) message.AppendLine("No nonzero DataPtrs");
@@ -233,9 +236,40 @@ namespace SampleMaster
                             Span<int> myPosActualSpan = new Span<int>(varPosActual.DataPtr.ToPointer(), 1);
                             //myPosActualSpan[0] ^= 1UL << varPosActual.BitOffset;
                             if (PositionActual != myPosActualSpan[0])
-                            Console.WriteLine($"PosActual is: {myPosActualSpan[0]}");
+                                Console.WriteLine($"PosActual is: {myPosActualSpan[0]}");
                             PositionActual = myPosActualSpan[0];
+
+                            Span<int> myTargetPositionSpan = new Span<int>(varTargetPosition.DataPtr.ToPointer(), 1);                            
+                            if (TargetPositionSpan != myTargetPositionSpan[0])
+                                Console.WriteLine($"Target Pos is: {myTargetPositionSpan[0]}");
+                            TargetPositionSpan = myTargetPositionSpan[0];
+
+                            //enable servo
+                            if (loopCounter == 1)
+                            {
+                                Console.WriteLine($"Enabling 6");
+                                myControlwordSpan[0] = 6;
+                            }
+                            if (loopCounter == 2)
+                            {
+                                Console.WriteLine($"Enabling 7");
+                                myControlwordSpan[0] = 7;
+                            }
+                            if (loopCounter == 3)
+                            {
+                                Console.WriteLine($"Enabling servo");
+                                myControlwordSpan[0] = 15;
+                            }
+                            if (loopCounter == 12)
+                            {
+                                Console.WriteLine($"Target");
+                                myTargetPositionSpan[0] = 0;
+                            }
+
+                            loopCounter++;
+                            
                         }
+                        
 
                         //unsafe
                         //{
