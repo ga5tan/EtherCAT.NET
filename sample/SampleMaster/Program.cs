@@ -19,6 +19,10 @@ namespace SampleMaster
 {
     class Program
     {
+        static void myLog(string sMsg)
+        {
+            Console.WriteLine($"{DateTime.UtcNow.ToString()}: {sMsg.TrimEnd()}");
+        }
         static void listMappedVariables(List<SlaveInfo> slaves)
         {
             var message = new StringBuilder();
@@ -29,13 +33,65 @@ namespace SampleMaster
                 foreach (var variable in pdo.Variables)
                 {
                     if (variable.DataPtr.ToInt64() != 0)
-                        message.AppendLine($"{iCounter}.) '{variable.Name}', Idx: '{variable.Index:X4}', Len: {variable.BitLength}, Offset {variable.BitOffset}");
+                        message.AppendLine($"{iCounter}.) '{variable.Name}', Idx: '{variable.Index:X4}h', Len: {variable.BitLength}, Offset {variable.BitOffset}");
                     //message.AppendLine($"{iCounter}.) pdoName '{pdo.Name}' variableName: '{variable.Name}', DataPtr: '{variable.DataPtr.ToInt64()}', Len: {variable.BitLength}");
                 }
                 iCounter++;
             }
             Console.WriteLine(message.ToString().TrimEnd());
             //logger.LogInformation(message.ToString().TrimEnd());
+        }
+
+        static async Task Main2(string[] args)
+        {
+            Console.WriteLine("Tester");
+            ushort StatusWord = 0x8640;
+            var myControlwordSpan = new ushort[1];
+            var StatusBits = 0;
+            var loopCounter = 0;
+
+            Console.WriteLine("{0:X}", (0x8637 & 0x3F));
+            Console.WriteLine("{0:X}", (0x8637 & 0x3F) & 0x27);
+            Console.WriteLine("{0:X}",  (0x8637 & 0x27));
+
+            while (false)
+            {
+                if (StatusBits == 0)
+                {
+                    myLog($"{loopCounter}: Setting CW to 6h (Shutdown)");
+                    StatusBits = 1;
+                    myControlwordSpan[0] = 0x6;
+                }
+                if (((StatusWord & 0x21) == 0x21) && ((StatusBits & 2) != 2))
+                {
+                    myLog($"{loopCounter}: Setting CW to 7h (Switch On) {(StatusWord & 0x21):X4}");
+                    StatusBits = 3;
+                    myControlwordSpan[0] = 0x7;
+                }
+                if (((StatusWord & 0x23) == 0x23) && ((StatusBits & 4) != 4))
+                {
+                    myLog($"{loopCounter}: Setting CW to Fh (Enable Operation)");
+                    StatusBits = 7;
+                    myControlwordSpan[0] = 0xF;
+                }
+                if (((StatusWord & 0x27) == 0x27) && ((StatusBits & 8) != 8))
+                {
+                    myLog($"{loopCounter}: Ready to go!");
+                    StatusBits = 15;
+                    //Console.WriteLine($"Target Pos GO!");
+                    //myControlwordSpan[0] = 0x1F;
+                    //myModesOfOperation[0] = 1;
+                    //myTargetPositionSpan[0] = 5000000;
+                }
+
+                Thread.Sleep(500);
+                loopCounter++;
+
+                if (loopCounter == 1) StatusWord = 0x8621;
+                if (loopCounter == 2) StatusWord = 0x8623;
+                if (loopCounter == 3) StatusWord = 0x8627;
+                
+            }
         }
         static async Task Main(string[] args)
         {
@@ -85,27 +141,7 @@ namespace SampleMaster
             rootSlave.Descendants().ToList().ForEach(slave =>
             {
                 // If you have special extensions for this slave, add it here:                    
-                // slave.Extensions.Add(new MyFancyExtension());
-
-                /*################ Sample code START ##################
-
-                // Example code to add SDO write request during initialization
-                // to Beckhoff "EL3021"
-                if (slave.ProductCode == 0xBCD3052)
-                {
-                    var dataset = new List<object>();
-                    dataset.Add((byte)0x01);
-
-                    var requests = new List<SdoWriteRequest>()
-                    {
-                        // Index 0x8000 sub index 6: Filter on
-                        new SdoWriteRequest(0x8000, 0x6, dataset)   
-                    };
-
-                    slave.Extensions.Add(new InitialSettingsExtension(requests));
-                }
-
-                ################## Sample code END #################*/
+                // slave.Extensions.Add(new MyFancyExtension());                
 
                 EcUtilities.CreateDynamicData(settings.EsiDirectoryPath, slave);
             });
@@ -148,12 +184,13 @@ namespace SampleMaster
 
                 //byG              
 
-                listMappedVariables(slaves);
+                //listMappedVariables(slaves);
 
                 var pdoAnalogIn = slaves[0].DynamicData.Pdos;
-                var varStatusword = pdoAnalogIn[0].Variables.Where(x => x.Name == "Statusword").First();
+                var varErrorCode = pdoAnalogIn[0].Variables.Where(x => x.Name == "Error code").First();
+                var varStatusWord = pdoAnalogIn[0].Variables.Where(x => x.Name == "Statusword").First();
                 var varPosActual = pdoAnalogIn[0].Variables.Where(x => x.Name == "Position actual value").First();
-                var varControlword = pdoAnalogIn[4].Variables.Where(x => x.Name == "Controlword").First();
+                var varControlWord = pdoAnalogIn[4].Variables.Where(x => x.Name == "Controlword").First();
                 var varTargetPosition = pdoAnalogIn[4].Variables.Where(x => x.Name == "Target position").First();
                 var varModesOfOperation = pdoAnalogIn[4].Variables.Where(x => x.Name == "Modes of operation").First();
 
@@ -161,90 +198,126 @@ namespace SampleMaster
                 var task = Task.Run(() =>
                 {
                     var sleepTime = 1000 / (int)settings.CycleFrequency;
-                    sleepTime = 2000;
+                    sleepTime = 1000;
                     Console.WriteLine($"sleepTime: {sleepTime}");
 
-                    ushort Statusword = 0;
-                    ushort Controlword = 0;
+                    //603fh
+                    ushort ErrorCode = 0;
+                    //6040h
+                    ushort ControlWord = 0;
+                    //6041h
+                    ushort StatusWord = 0;
+                    //6060h
+                    sbyte ModesOfOperation = 0;
                     Int32 PositionActual = 0;
                     Int32 TargetPositionSpan = 0;
-                    sbyte ModesOfOperation = 0;
-                    var loopCounter = 0;     
-
-                    while (!cts.IsCancellationRequested)                   
+                    
+                    var loopCounter = 0;
+                    var StatusBits = 0;
+                    
+                    //skips the initialisation
+                    //StatusBits = 16;
+                    
+                    while (!cts.IsCancellationRequested)
                     {                        
                         master.UpdateIO(DateTime.UtcNow);                        
 
                         unsafe
                         {
-                            Span<ushort> myStatuswordSpan = new Span<ushort>(varStatusword.DataPtr.ToPointer(), 1);                            
-                            if (Statusword != myStatuswordSpan[0])
-                                Console.WriteLine($"Statusword is: {myStatuswordSpan[0]:X4}h/{myStatuswordSpan[0]}");
-                            Statusword = myStatuswordSpan[0];
+                            Span<ushort> myErrorCodeSpan = new Span<ushort>(varErrorCode.DataPtr.ToPointer(), 1);
+                            if (ErrorCode != myErrorCodeSpan[0])
+                                myLog($"ErrorCode is: {myErrorCodeSpan[0]:X4}");
+                            ErrorCode = myErrorCodeSpan[0];
 
-                            Span<ushort> myControlwordSpan = new Span<ushort>(varControlword.DataPtr.ToPointer(), 1);                            
-                            if (Controlword != myControlwordSpan[0])
-                                Console.WriteLine($"Controlword is: {myControlwordSpan[0]:X4}h");
-                            Controlword = myControlwordSpan[0];
+                            Span<ushort> myStatuswordSpan = new Span<ushort>(varStatusWord.DataPtr.ToPointer(), 1);                            
+                            if (StatusWord != myStatuswordSpan[0])
+                                myLog($"Statusword is: {myStatuswordSpan[0]:X4}h/{myStatuswordSpan[0]}");
+                            StatusWord = myStatuswordSpan[0];
+
+                            Span<ushort> myControlwordSpan = new Span<ushort>(varControlWord.DataPtr.ToPointer(), 1);                            
+                            //if (ControlWord != myControlwordSpan[0])
+                            //    myLog($"Controlword is: {myControlwordSpan[0]:X4}h");
+                            ControlWord = myControlwordSpan[0];
 
                             Span<int> myPosActualSpan = new Span<int>(varPosActual.DataPtr.ToPointer(), 1);                            
                             if (PositionActual != myPosActualSpan[0])
-                                Console.WriteLine($"PosActual is: {myPosActualSpan[0]}");
+                                myLog($"PosActual is: {myPosActualSpan[0]}");
                             PositionActual = myPosActualSpan[0];
 
                             Span<int> myTargetPositionSpan = new Span<int>(varTargetPosition.DataPtr.ToPointer(), 1);                            
                             if (TargetPositionSpan != myTargetPositionSpan[0])
-                                Console.WriteLine($"Target Pos is: {myTargetPositionSpan[0]}");
+                                myLog($"Target Pos is: {myTargetPositionSpan[0]}");
                             TargetPositionSpan = myTargetPositionSpan[0];
 
                             Span<sbyte> myModesOfOperation = new Span<sbyte>(varModesOfOperation.DataPtr.ToPointer(), 1);
                             if (ModesOfOperation != myModesOfOperation[0])
-                                Console.WriteLine($"ModesOfOperation is: {myModesOfOperation[0]:X4}h/{myStatuswordSpan[0]}");
+                                myLog($"ModesOfOperation is: {myModesOfOperation[0]:X4}h/{myStatuswordSpan[0]}");
                             ModesOfOperation = myModesOfOperation[0];
 
-                            //enable servo
-                            //if (loopCounter == 1)
-                            //{
-                            //    Console.WriteLine($"Enabling 6");
-                            //    myControlwordSpan[0] = 0x6;
-                            //}
-                            //if (loopCounter == 2)
-                            //{
-                            //    Console.WriteLine($"Enabling 7");
-                            //    myControlwordSpan[0] = 0x7;
-                            //}
-                            //if (loopCounter == 3)
-                            //{
-                            //    Console.WriteLine($"Enabling servo");
-                            //    myControlwordSpan[0] = 0xF;
-                            //}
-                            //if (loopCounter == 9)
-                            //{
-                            //    Console.WriteLine($"Target Pos GO!");
-                            //    myControlwordSpan[0] = 0x1F;
-                            //    myModesOfOperation[0] = 1;
-                            //    myTargetPositionSpan[0] = 5000000;
-                            //}
+                            if (loopCounter == 0) myModesOfOperation[0] = 1;
 
-                            loopCounter++;
+                            //enable servo
+
+                            //condition is no good, but reset seems to work sometimes
+                            if ((StatusWord & 0xF) == 0x04)
+                            {
+                                Console.WriteLine($"Setting 80h (Fault Reset)");
+                                StatusBits = 0;
+                                myControlwordSpan[0] = 0x80;
+                            }
+
+                            //are we good to start?
+                            if (((StatusWord & 0x7F) == 0x40) && (StatusBits == 0))
+                            {
+                                myLog("Setting CW to 6h (Shutdown)");
+                                StatusBits = 1;
+                                myControlwordSpan[0] = 0x6;
+                            }
+                            if (((StatusWord & 0x3F) == 0x21) && ((StatusBits & 2) != 2))
+                            {
+                                myLog($"Setting CW to 7h (Switch On) {(StatusWord & 0x21):X4}");
+                                StatusBits = 3;
+                                myControlwordSpan[0] = 0x7;
+                            }
+                            //should be 23
+                            if (((StatusWord & 0x3F) == 0x33) && ((StatusBits & 4) != 4))
+                            {
+                                myLog("Setting CW to Fh (Enable Operation)");
+                                StatusBits = 7;
+                                myControlwordSpan[0] = 0xF;
+                            }
+                            //should be 27
+                            if (((StatusWord & 0x3F) == 0x37) && ((StatusBits & 8) != 8))
+                            {
+                                myLog($"Ready to go with statusSpan: {myStatuswordSpan[0]:X4}, Word:{(StatusWord & 0x3F):X4}");
+                                StatusBits = 15;
+                                //Console.WriteLine($"Target Pos GO!");
+                                //myControlwordSpan[0] = 0x1F;
+                                //myModesOfOperation[0] = 1;
+                                //myTargetPositionSpan[0] = 5000000;
+                            }
+
+                            Thread.Sleep(sleepTime);
+                            ///this does not seem to work
+                            if (cts.IsCancellationRequested)
+                            {
+                                myControlwordSpan[0] = 0x7;
+                                master.UpdateIO(DateTime.UtcNow);
+                                Console.WriteLine($"Quitting!");
+                            }
+                                loopCounter++;
                             
                         }
+
                         
+                    }
 
-                        //unsafe
-                        //{
-                        //    void* data = varStatusword.DataPtr.ToPointer();
-                        //    int bitmask = (1 << varStatusword.BitLength) - 1;
-                        //    int shift = (*(int*)data >> varStatusword.BitOffset) & bitmask;
-                        //    ushort myStatusword = (ushort)shift;
-                        //    //if (Statusword != myStatusword) 
-                        //        Console.WriteLine($"Statusword: {myStatusword}");
-                        //    Statusword = myStatusword;
-                        //}
-
-
-                        //Console.WriteLine("sleeping");
-                        Thread.Sleep(sleepTime);
+                    unsafe
+                    {
+                        Console.WriteLine($"Loop ended!");
+                        Span<ushort> myControlwordSpan = new Span<ushort>(varControlWord.DataPtr.ToPointer(), 1);
+                        myControlwordSpan[0] = 0x7;
+                        master.UpdateIO(DateTime.UtcNow);
                     }
                 }, cts.Token);
 
@@ -255,7 +328,7 @@ namespace SampleMaster
                 cts.Cancel();
                 await task;
             }
-            Console.WriteLine("return");
+            //Console.WriteLine("return");
             return; /* remove this to run real world sample*/
 
             /* create EC Master (real world sample) */
