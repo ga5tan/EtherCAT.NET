@@ -19,6 +19,24 @@ namespace SampleMaster
 {
     class Program
     {
+        static void listMappedVariables(List<SlaveInfo> slaves)
+        {
+            var message = new StringBuilder();
+            int iCounter = 0;
+            foreach (var pdo in slaves[0].DynamicData.Pdos)
+            {
+
+                foreach (var variable in pdo.Variables)
+                {
+                    if (variable.DataPtr.ToInt64() != 0)
+                        message.AppendLine($"{iCounter}.) '{variable.Name}', Idx: '{variable.Index:X4}', Len: {variable.BitLength}, Offset {variable.BitOffset}");
+                    //message.AppendLine($"{iCounter}.) pdoName '{pdo.Name}' variableName: '{variable.Name}', DataPtr: '{variable.DataPtr.ToInt64()}', Len: {variable.BitLength}");
+                }
+                iCounter++;
+            }
+            Console.WriteLine(message.ToString().TrimEnd());
+            //logger.LogInformation(message.ToString().TrimEnd());
+        }
         static async Task Main(string[] args)
         {
             System.AppDomain.CurrentDomain.UnhandledException += UnhandledExceptionTrapper;
@@ -28,7 +46,7 @@ namespace SampleMaster
             //var interfaceName = "Wi-Fi";
             //var interfaceName = "Ethernet 3";
             var interfaceName = ConfigurationManager.AppSettings["interfaceName"];
-            Console.WriteLine("ver 230613.01");
+            Console.WriteLine("ver 230614.01");
             Console.WriteLine("Connecting interfaceName:" + interfaceName + " (case sensitive)");
 
             /* Set ESI location. Make sure it contains ESI files! The default path is /home/{user}/.local/share/ESI */
@@ -128,50 +146,18 @@ namespace SampleMaster
                 var random = new Random();
                 var cts = new CancellationTokenSource();
 
-                //byG
+                //byG              
 
-                //var myOutputs = new DigitalOut(slaves[0]);
-
-                //var myVariables = slaves[0].DynamicData.Pdos;                
-                //var variable0 = variables[0];
-
-                //message = new StringBuilder();
-                //int iCounter = 0;
-                //foreach (var pdo in slaves[0].DynamicData.Pdos)
-                //{
-
-                //    foreach (var variable in pdo.Variables)
-                //    {
-                //        if (variable.DataPtr.ToInt64() != 0)
-                //            message.AppendLine($"{iCounter}.) '{variable.Name}', Ptr: '{variable.DataPtr.ToInt64()}', Len: {variable.BitLength}, Offset {variable.BitOffset}");
-                //        //message.AppendLine($"{iCounter}.) pdoName '{pdo.Name}' variableName: '{variable.Name}', DataPtr: '{variable.DataPtr.ToInt64()}', Len: {variable.BitLength}");
-                //    }
-                //    iCounter++;
-                //}
-                //logger.LogInformation(message.ToString().TrimEnd());
+                listMappedVariables(slaves);
 
                 var pdoAnalogIn = slaves[0].DynamicData.Pdos;
                 var varStatusword = pdoAnalogIn[0].Variables.Where(x => x.Name == "Statusword").First();
                 var varPosActual = pdoAnalogIn[0].Variables.Where(x => x.Name == "Position actual value").First();
                 var varControlword = pdoAnalogIn[4].Variables.Where(x => x.Name == "Controlword").First();
                 var varTargetPosition = pdoAnalogIn[4].Variables.Where(x => x.Name == "Target position").First();
+                var varModesOfOperation = pdoAnalogIn[4].Variables.Where(x => x.Name == "Modes of operation").First();
 
-                //Target position
 
-                //unsafe
-                //{
-                //    Span<int> myVariableSpan = new Span<int>(varAnalogIn.DataPtr.ToPointer(), 1);
-                //    myVariableSpan[0] ^= 1UL << varAnalogIn.BitOffset;
-                //}
-
-                //unsafe
-                //{
-                //    void* data = varAnalogIn.DataPtr.ToPointer();
-                //    int bitmask = (1 << varAnalogIn.BitLength) - 1;
-                //    int shift = (*(int*)data >> varAnalogIn.BitOffset) & bitmask;
-                //    short analogIn = (short)shift;
-                //    logger.LogInformation($"Statusword is: {analogIn}");
-                //}
                 var task = Task.Run(() =>
                 {
                     var sleepTime = 1000 / (int)settings.CycleFrequency;
@@ -182,59 +168,26 @@ namespace SampleMaster
                     ushort Controlword = 0;
                     Int32 PositionActual = 0;
                     Int32 TargetPositionSpan = 0;
+                    sbyte ModesOfOperation = 0;
                     var loopCounter = 0;     
 
-                    while (!cts.IsCancellationRequested)
-                    //while (true)
-                    {
-                        //Console.WriteLine("master.UpdateIO start");
-                        master.UpdateIO(DateTime.UtcNow);
-                        //Console.WriteLine("master.UpdateIO end");
-
-                        //message = new StringBuilder();
-                        //foreach (var pdo in slaves[0].DynamicData.Pdos)
-                        //{
-
-                        //    foreach (var variable in pdo.Variables)
-                        //    {
-                        //        if (variable.DataPtr.ToInt32() != 0) message.AppendLine($"pdoName '{pdo.Name}' variableName: '{variable.Name}', DataPtr: '{variable.DataPtr.ToInt64()}'");
-                        //    }
-                        //}
-                        //if (message.Length < 1) message.AppendLine("No nonzero DataPtrs");
-                        //logger.LogInformation(message.ToString().TrimEnd());
-
-                        //unsafe
-                        //{
-                        //    if (variables.Any())
-                        //    {
-                        //        var myVariableSpan = new Span<int>(variables.First().DataPtr.ToPointer(), 1);
-                        //        myVariableSpan[0] = random.Next(0, 100);                              
-                        //    }
-                        //}
-
-                        //unsafe
-                        //{
-                        //    Span<int> myStatuswordSpan = new Span<int>(varStatusword.DataPtr.ToPointer(), 1);
-                        //    //myVariableSpan[0] ^= 1UL << varStatusword.BitOffset;
-                        //    Console.WriteLine($"Statusword is: {myStatuswordSpan[0]}");
-                        //}
+                    while (!cts.IsCancellationRequested)                   
+                    {                        
+                        master.UpdateIO(DateTime.UtcNow);                        
 
                         unsafe
                         {
-                            Span<ushort> myStatuswordSpan = new Span<ushort>(varStatusword.DataPtr.ToPointer(), 1);
-                            //myStatuswordSpan[0] ^= 1UL << varStatusword.BitOffset;
+                            Span<ushort> myStatuswordSpan = new Span<ushort>(varStatusword.DataPtr.ToPointer(), 1);                            
                             if (Statusword != myStatuswordSpan[0])
-                                Console.WriteLine($"Statusword is: {myStatuswordSpan[0]}");
+                                Console.WriteLine($"Statusword is: {myStatuswordSpan[0]:X4}h/{myStatuswordSpan[0]}");
                             Statusword = myStatuswordSpan[0];
 
-                            Span<ushort> myControlwordSpan = new Span<ushort>(varControlword.DataPtr.ToPointer(), 1);
-                            //myStatuswordSpan[0] ^= 1US << varStatusword.BitOffset;
+                            Span<ushort> myControlwordSpan = new Span<ushort>(varControlword.DataPtr.ToPointer(), 1);                            
                             if (Controlword != myControlwordSpan[0])
-                                Console.WriteLine($"Controlword is: {myControlwordSpan[0]}");
+                                Console.WriteLine($"Controlword is: {myControlwordSpan[0]:X4}h");
                             Controlword = myControlwordSpan[0];
 
-                            Span<int> myPosActualSpan = new Span<int>(varPosActual.DataPtr.ToPointer(), 1);
-                            //myPosActualSpan[0] ^= 1UL << varPosActual.BitOffset;
+                            Span<int> myPosActualSpan = new Span<int>(varPosActual.DataPtr.ToPointer(), 1);                            
                             if (PositionActual != myPosActualSpan[0])
                                 Console.WriteLine($"PosActual is: {myPosActualSpan[0]}");
                             PositionActual = myPosActualSpan[0];
@@ -244,27 +197,34 @@ namespace SampleMaster
                                 Console.WriteLine($"Target Pos is: {myTargetPositionSpan[0]}");
                             TargetPositionSpan = myTargetPositionSpan[0];
 
+                            Span<sbyte> myModesOfOperation = new Span<sbyte>(varModesOfOperation.DataPtr.ToPointer(), 1);
+                            if (ModesOfOperation != myModesOfOperation[0])
+                                Console.WriteLine($"ModesOfOperation is: {myModesOfOperation[0]:X4}h/{myStatuswordSpan[0]}");
+                            ModesOfOperation = myModesOfOperation[0];
+
                             //enable servo
-                            if (loopCounter == 1)
-                            {
-                                Console.WriteLine($"Enabling 6");
-                                myControlwordSpan[0] = 6;
-                            }
-                            if (loopCounter == 2)
-                            {
-                                Console.WriteLine($"Enabling 7");
-                                myControlwordSpan[0] = 7;
-                            }
-                            if (loopCounter == 3)
-                            {
-                                Console.WriteLine($"Enabling servo");
-                                myControlwordSpan[0] = 15;
-                            }
-                            if (loopCounter == 12)
-                            {
-                                Console.WriteLine($"Target");
-                                myTargetPositionSpan[0] = 0;
-                            }
+                            //if (loopCounter == 1)
+                            //{
+                            //    Console.WriteLine($"Enabling 6");
+                            //    myControlwordSpan[0] = 0x6;
+                            //}
+                            //if (loopCounter == 2)
+                            //{
+                            //    Console.WriteLine($"Enabling 7");
+                            //    myControlwordSpan[0] = 0x7;
+                            //}
+                            //if (loopCounter == 3)
+                            //{
+                            //    Console.WriteLine($"Enabling servo");
+                            //    myControlwordSpan[0] = 0xF;
+                            //}
+                            //if (loopCounter == 9)
+                            //{
+                            //    Console.WriteLine($"Target Pos GO!");
+                            //    myControlwordSpan[0] = 0x1F;
+                            //    myModesOfOperation[0] = 1;
+                            //    myTargetPositionSpan[0] = 5000000;
+                            //}
 
                             loopCounter++;
                             
