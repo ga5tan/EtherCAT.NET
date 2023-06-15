@@ -207,6 +207,7 @@ namespace SampleMaster
                     ushort ControlWord = 0;
                     //6041h
                     ushort StatusWord = 0;
+                    Int32 Status6bits = 0;
                     //6060h
                     sbyte ModesOfOperation = 0;
                     Int32 PositionActual = 0;
@@ -225,76 +226,79 @@ namespace SampleMaster
                         unsafe
                         {
                             Span<ushort> myErrorCodeSpan = new Span<ushort>(varErrorCode.DataPtr.ToPointer(), 1);
-                            if (ErrorCode != myErrorCodeSpan[0])
-                                myLog($"ErrorCode is: {myErrorCodeSpan[0]:X4}");
+                            if (ErrorCode != myErrorCodeSpan[0]) myLog($"ErrorCode is: {myErrorCodeSpan[0]:X4}");
                             ErrorCode = myErrorCodeSpan[0];
 
                             Span<ushort> myStatuswordSpan = new Span<ushort>(varStatusWord.DataPtr.ToPointer(), 1);                            
-                            if (StatusWord != myStatuswordSpan[0])
-                                myLog($"Statusword is: {myStatuswordSpan[0]:X4}h/{myStatuswordSpan[0]}");
+                            if (StatusWord != myStatuswordSpan[0]) myLog($"Statusword is: {myStatuswordSpan[0]:X4}h/{myStatuswordSpan[0]}");
                             StatusWord = myStatuswordSpan[0];
 
                             Span<ushort> myControlwordSpan = new Span<ushort>(varControlWord.DataPtr.ToPointer(), 1);                            
-                            //if (ControlWord != myControlwordSpan[0])
-                            //    myLog($"Controlword is: {myControlwordSpan[0]:X4}h");
+                            //if (ControlWord != myControlwordSpan[0]) myLog($"Controlword is: {myControlwordSpan[0]:X4}h");
                             ControlWord = myControlwordSpan[0];
 
                             Span<int> myPosActualSpan = new Span<int>(varPosActual.DataPtr.ToPointer(), 1);                            
-                            if (PositionActual != myPosActualSpan[0])
-                                myLog($"PosActual is: {myPosActualSpan[0]}");
+                            if (((StatusBits & 15) == 15) && (PositionActual != myPosActualSpan[0])) myLog($"PosActual is: {myPosActualSpan[0]}");
                             PositionActual = myPosActualSpan[0];
 
                             Span<int> myTargetPositionSpan = new Span<int>(varTargetPosition.DataPtr.ToPointer(), 1);                            
-                            if (TargetPositionSpan != myTargetPositionSpan[0])
-                                myLog($"Target Pos is: {myTargetPositionSpan[0]}");
+                            if (TargetPositionSpan != myTargetPositionSpan[0]) myLog($"Target Pos is: {myTargetPositionSpan[0]}");
                             TargetPositionSpan = myTargetPositionSpan[0];
 
                             Span<sbyte> myModesOfOperation = new Span<sbyte>(varModesOfOperation.DataPtr.ToPointer(), 1);
-                            if (ModesOfOperation != myModesOfOperation[0])
-                                myLog($"ModesOfOperation is: {myModesOfOperation[0]:X4}h/{myStatuswordSpan[0]}");
-                            ModesOfOperation = myModesOfOperation[0];
-
-                            if (loopCounter == 0) myModesOfOperation[0] = 1;
+                            if (ModesOfOperation != myModesOfOperation[0]) myLog($"ModesOfOperation is: {myModesOfOperation[0]:X4}h/{myStatuswordSpan[0]}");
+                            ModesOfOperation = myModesOfOperation[0];           
 
                             //enable servo
 
-                            //condition is no good, but reset seems to work sometimes
-                            if ((StatusWord & 0xF) == 0x04)
+                            //reset seems to work sometimes
+                            if ((StatusWord & 0xF) == 0x08)
                             {
-                                Console.WriteLine($"Setting 80h (Fault Reset)");
+                                myLog($"Setting 80h (Fault Reset)");
                                 StatusBits = 0;
                                 myControlwordSpan[0] = 0x80;
                             }
 
-                            //are we good to start?
-                            if (((StatusWord & 0x7F) == 0x40) && (StatusBits == 0))
+                            //are we good to start - Status ending with 40h?
+                            if (((StatusWord & 0x7F) == 0x40) && ((StatusBits & 1) == 0))
                             {
                                 myLog("Setting CW to 6h (Shutdown)");
                                 StatusBits = 1;
                                 myControlwordSpan[0] = 0x6;
                             }
-                            if (((StatusWord & 0x3F) == 0x21) && ((StatusBits & 2) != 2))
+
+                            Status6bits = (StatusWord & 0x3F);
+
+                            if ((Status6bits == 0x21) && ((StatusBits & 2) != 2))
                             {
                                 myLog($"Setting CW to 7h (Switch On) {(StatusWord & 0x21):X4}");
                                 StatusBits = 3;
                                 myControlwordSpan[0] = 0x7;
                             }
                             //should be 23
-                            if (((StatusWord & 0x3F) == 0x33) && ((StatusBits & 4) != 4))
+                            if (((Status6bits == 0x23) || (Status6bits == 0x33)) && ((StatusBits & 4) != 4))
                             {
                                 myLog("Setting CW to Fh (Enable Operation)");
                                 StatusBits = 7;
                                 myControlwordSpan[0] = 0xF;
                             }
                             //should be 27
-                            if (((StatusWord & 0x3F) == 0x37) && ((StatusBits & 8) != 8))
+                            if (((Status6bits == 0x27) || (Status6bits == 0x37)) && ((StatusBits & 8) != 8))
                             {
-                                myLog($"Ready to go with statusSpan: {myStatuswordSpan[0]:X4}, Word:{(StatusWord & 0x3F):X4}");
-                                StatusBits = 15;
-                                //Console.WriteLine($"Target Pos GO!");
-                                //myControlwordSpan[0] = 0x1F;
-                                //myModesOfOperation[0] = 1;
-                                //myTargetPositionSpan[0] = 5000000;
+                                if ((StatusBits & 7) != 7)
+                                {
+                                    myLog("It seems the app was started with servo on!\nRestarting");                                    
+                                    myControlwordSpan[0] = 0x7;
+                                    StatusBits = 14;
+                                }
+                                else { 
+                                    myLog($"Ready to go with Statusword: {myStatuswordSpan[0]:X4}");
+                                    StatusBits = 15;
+                                    //Console.WriteLine($"Target Pos GO!");
+                                    //myControlwordSpan[0] = 0x1F;
+                                    //myModesOfOperation[0] = 1;
+                                    //myTargetPositionSpan[0] = 5000000;
+                                }
                             }
 
                             Thread.Sleep(sleepTime);
@@ -303,7 +307,8 @@ namespace SampleMaster
                             {
                                 myControlwordSpan[0] = 0x7;
                                 master.UpdateIO(DateTime.UtcNow);
-                                Console.WriteLine($"Quitting!");
+                                Console.WriteLine($"Shutting down servo!");
+                                Thread.Sleep(sleepTime);
                             }
                                 loopCounter++;
                             
@@ -312,13 +317,13 @@ namespace SampleMaster
                         
                     }
 
-                    unsafe
-                    {
-                        Console.WriteLine($"Loop ended!");
-                        Span<ushort> myControlwordSpan = new Span<ushort>(varControlWord.DataPtr.ToPointer(), 1);
-                        myControlwordSpan[0] = 0x7;
-                        master.UpdateIO(DateTime.UtcNow);
-                    }
+                    //unsafe
+                    //{
+                    //    Console.WriteLine($"Loop ended!");
+                    //    Span<ushort> myControlwordSpan = new Span<ushort>(varControlWord.DataPtr.ToPointer(), 1);
+                    //    myControlwordSpan[0] = 0x7;
+                    //    master.UpdateIO(DateTime.UtcNow);
+                    //}
                 }, cts.Token);
 
                 Console.WriteLine("waiting for the key...");
