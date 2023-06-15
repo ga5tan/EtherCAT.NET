@@ -110,6 +110,7 @@ namespace SampleMaster
             var esiDirectoryPath = Path.Combine(localAppDataPath, "ESI");
             Directory.CreateDirectory(esiDirectoryPath);
 
+            //C:\Users\Flexicam\AppData\Local\ESI
             Console.WriteLine($"esiDirectoryPath: {esiDirectoryPath}");
 
             /* Copy native file. NOT required in end user scenarios, where EtherCAT.NET package is installed via NuGet! */
@@ -299,8 +300,6 @@ namespace SampleMaster
                                     NextStatusBits = 15;
                                     
                                     myLog($"Mode!");
-                                    //myTargetPositionSpan[0] = 5000000;
-                                    //myControlwordSpan[0] = 0x10;
                                     myModesOfOperation[0] = 1;                                    
                                 }
                             }
@@ -316,8 +315,8 @@ namespace SampleMaster
                             {
                                 NextStatusBits = 63;
                                 myLog($"Control!");
-                                myControlwordSpan[0] = 0x1F;
-                                //myControlwordSpan[0] = 0x10;
+                                //myControlwordSpan[0] = 0x1F;
+                                myControlwordSpan[0] = 0x10;
                                 //no good
                                 //myControlwordSpan[0] = 0x20;
                             }
