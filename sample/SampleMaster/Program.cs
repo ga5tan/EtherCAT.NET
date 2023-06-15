@@ -21,7 +21,7 @@ namespace SampleMaster
     {
         static void myLog(string sMsg)
         {
-            Console.WriteLine($"{DateTime.UtcNow.ToString()}: {sMsg.TrimEnd()}");
+            Console.WriteLine($"{DateTime.UtcNow.ToString("hh:mm:ss.fff tt")}: {sMsg.TrimEnd()}");
         }
         static void listMappedVariables(List<SlaveInfo> slaves)
         {
@@ -102,7 +102,7 @@ namespace SampleMaster
             //var interfaceName = "Wi-Fi";
             //var interfaceName = "Ethernet 3";
             var interfaceName = ConfigurationManager.AppSettings["interfaceName"];
-            Console.WriteLine("ver 230614.01");
+            Console.WriteLine("ver 230615.01");
             Console.WriteLine("Connecting interfaceName:" + interfaceName + " (case sensitive)");
 
             /* Set ESI location. Make sure it contains ESI files! The default path is /home/{user}/.local/share/ESI */
@@ -198,7 +198,7 @@ namespace SampleMaster
                 var task = Task.Run(() =>
                 {
                     var sleepTime = 1000 / (int)settings.CycleFrequency;
-                    sleepTime = 1000;
+                    sleepTime = 300;
                     Console.WriteLine($"sleepTime: {sleepTime}");
 
                     //603fh
@@ -211,14 +211,16 @@ namespace SampleMaster
                     //6060h
                     sbyte ModesOfOperation = 0;
                     Int32 PositionActual = 0;
-                    Int32 TargetPositionSpan = 0;
+                    //607A
+                    Int32 TargetPosition = 0;
                     
                     var loopCounter = 0;
                     var StatusBits = 0;
-                    
+                    var NextStatusBits = 0;
+
                     //skips the initialisation
                     //StatusBits = 16;
-                    
+
                     while (!cts.IsCancellationRequested)
                     {                        
                         master.UpdateIO(DateTime.UtcNow);                        
@@ -230,7 +232,7 @@ namespace SampleMaster
                             ErrorCode = myErrorCodeSpan[0];
 
                             Span<ushort> myStatuswordSpan = new Span<ushort>(varStatusWord.DataPtr.ToPointer(), 1);                            
-                            if (StatusWord != myStatuswordSpan[0]) myLog($"Statusword is: {myStatuswordSpan[0]:X4}h/{myStatuswordSpan[0]}");
+                            if (StatusWord != myStatuswordSpan[0]) myLog($"Statusword is: {myStatuswordSpan[0]:X4}h");
                             StatusWord = myStatuswordSpan[0];
 
                             Span<ushort> myControlwordSpan = new Span<ushort>(varControlWord.DataPtr.ToPointer(), 1);                            
@@ -242,11 +244,11 @@ namespace SampleMaster
                             PositionActual = myPosActualSpan[0];
 
                             Span<int> myTargetPositionSpan = new Span<int>(varTargetPosition.DataPtr.ToPointer(), 1);                            
-                            if (TargetPositionSpan != myTargetPositionSpan[0]) myLog($"Target Pos is: {myTargetPositionSpan[0]}");
-                            TargetPositionSpan = myTargetPositionSpan[0];
+                            if (TargetPosition != myTargetPositionSpan[0]) myLog($"Target Pos is: {myTargetPositionSpan[0]}");
+                            TargetPosition = myTargetPositionSpan[0];
 
                             Span<sbyte> myModesOfOperation = new Span<sbyte>(varModesOfOperation.DataPtr.ToPointer(), 1);
-                            if (ModesOfOperation != myModesOfOperation[0]) myLog($"ModesOfOperation is: {myModesOfOperation[0]:X4}h/{myStatuswordSpan[0]}");
+                            if (ModesOfOperation != myModesOfOperation[0]) myLog($"ModesOfOperation is: {myModesOfOperation[0]:X4}h");
                             ModesOfOperation = myModesOfOperation[0];           
 
                             //enable servo
@@ -287,21 +289,51 @@ namespace SampleMaster
                             {
                                 if ((StatusBits & 7) != 7)
                                 {
-                                    myLog("It seems the app was started with servo on!\nRestarting");                                    
+                                    myLog("It seems the app was started with servo on!\nRestarting");
+                                    //servo restarts anyway, probably Control is 7 from shutdown
                                     myControlwordSpan[0] = 0x7;
                                     StatusBits = 14;
                                 }
                                 else { 
-                                    myLog($"Ready to go with Statusword: {myStatuswordSpan[0]:X4}");
-                                    StatusBits = 15;
-                                    //Console.WriteLine($"Target Pos GO!");
-                                    //myControlwordSpan[0] = 0x1F;
-                                    //myModesOfOperation[0] = 1;
+                                    myLog($"Ready to go with Statusword: {myStatuswordSpan[0]:X4}h");
+                                    NextStatusBits = 15;
+                                    
+                                    myLog($"Mode!");
                                     //myTargetPositionSpan[0] = 5000000;
+                                    //myControlwordSpan[0] = 0x10;
+                                    myModesOfOperation[0] = 1;                                    
                                 }
                             }
 
-                            Thread.Sleep(sleepTime);
+                            if ((ModesOfOperation==1) && ((StatusBits & 16) != 16))
+                            {
+                                NextStatusBits = 31;
+                                myLog($"Pos!");
+                                myTargetPositionSpan[0] = 5000000;
+                            }
+
+                            if ((TargetPosition != 0) && ((StatusBits & 32) != 32))
+                            {
+                                NextStatusBits = 63;
+                                myLog($"Control!");
+                                myControlwordSpan[0] = 0x1F;
+                                //myControlwordSpan[0] = 0x10;
+                                //no good
+                                //myControlwordSpan[0] = 0x20;
+                            }
+
+                            if ((StatusWord == 0x9637) && ((StatusBits & 64) != 64))
+                            {
+                                NextStatusBits = 127;
+                                myLog($"Control down!");
+                                myControlwordSpan[0] = 0x0;
+                            }
+
+                                Thread.Sleep(sleepTime);
+
+                            if (NextStatusBits != 0) StatusBits = NextStatusBits;
+                            NextStatusBits = 0;
+
                             ///this does not seem to work
                             if (cts.IsCancellationRequested)
                             {
