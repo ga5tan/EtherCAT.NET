@@ -191,6 +191,8 @@ namespace SampleMaster
                 var varErrorCode = pdoAnalogIn[0].Variables.Where(x => x.Name == "Error code").First();
                 var varStatusWord = pdoAnalogIn[0].Variables.Where(x => x.Name == "Statusword").First();
                 var varPosActual = pdoAnalogIn[0].Variables.Where(x => x.Name == "Position actual value").First();
+                var varModesOfOperationDisplay = pdoAnalogIn[0].Variables.Where(x => x.Name == "Modes of operation display").First();
+
                 var varControlWord = pdoAnalogIn[4].Variables.Where(x => x.Name == "Controlword").First();
                 var varTargetPosition = pdoAnalogIn[4].Variables.Where(x => x.Name == "Target position").First();
                 var varModesOfOperation = pdoAnalogIn[4].Variables.Where(x => x.Name == "Modes of operation").First();
@@ -211,6 +213,8 @@ namespace SampleMaster
                     Int32 Status6bits = 0;
                     //6060h
                     sbyte ModesOfOperation = 0;
+                    //6061h
+                    sbyte ModesOfOperationDisplay = 0;
                     Int32 PositionActual = 0;
                     //607A
                     Int32 TargetPosition = 0;
@@ -224,7 +228,7 @@ namespace SampleMaster
 
                     while (!cts.IsCancellationRequested)
                     {                        
-                        master.UpdateIO(DateTime.UtcNow);                        
+                        master.UpdateIO(DateTime.UtcNow);
 
                         unsafe
                         {
@@ -250,7 +254,11 @@ namespace SampleMaster
 
                             Span<sbyte> myModesOfOperation = new Span<sbyte>(varModesOfOperation.DataPtr.ToPointer(), 1);
                             if (ModesOfOperation != myModesOfOperation[0]) myLog($"ModesOfOperation is: {myModesOfOperation[0]:X4}h");
-                            ModesOfOperation = myModesOfOperation[0];           
+                            ModesOfOperation = myModesOfOperation[0];
+
+                            Span<sbyte> myModesOfOperationDisplay = new Span<sbyte>(varModesOfOperationDisplay.DataPtr.ToPointer(), 1);
+                            //if (ModesOfOperationDisplay != myModesOfOperationDisplay[0]) myLog($"ModesOfOperationDisplay is: {myModesOfOperationDisplay[0]:X4}h");
+                            ModesOfOperationDisplay = myModesOfOperationDisplay[0];
 
                             //enable servo
 
@@ -263,68 +271,71 @@ namespace SampleMaster
                             }
 
                             //are we good to start - Status ending with 40h?
-                            if (((StatusWord & 0x7F) == 0x40) && ((StatusBits & 1) == 0))
+                            if (((StatusWord & 0x7F) == 0x40) && ((StatusBits & 0b1) == 0))
+                            {
+                                myLog($"setting ModesOfOperation(6060h) to 1");
+                                myModesOfOperation[0] = 1;
+                                NextStatusBits = 1;
+                                
+                            }
+
+                            if (((StatusWord & 0x7F) == 0x40) && (StatusBits == 1))
                             {
                                 myLog("Setting CW to 6h (Shutdown)");
-                                StatusBits = 1;
+                                StatusBits = 0b11;
                                 myControlwordSpan[0] = 0x6;
                             }
 
                             Status6bits = (StatusWord & 0x3F);
 
-                            if ((Status6bits == 0x21) && ((StatusBits & 2) != 2))
+                            if ((Status6bits == 0x21) && ((StatusBits & 0b100) != 0b100))
                             {
-                                myLog($"Setting CW to 7h (Switch On) {(StatusWord & 0x21):X4}");
-                                StatusBits = 3;
+                                myLog($"Setting CW to 7h (Switch On)");
+                                StatusBits = 0b111;
                                 myControlwordSpan[0] = 0x7;
                             }
                             //should be 23
-                            if (((Status6bits == 0x23) || (Status6bits == 0x33)) && ((StatusBits & 4) != 4))
+                            if (((Status6bits == 0x23) || (Status6bits == 0x33)) && ((StatusBits & 0b1000) != 0b1000))
                             {
                                 myLog("Setting CW to Fh (Enable Operation)");
-                                StatusBits = 7;
+                                StatusBits = 0b1111;
                                 myControlwordSpan[0] = 0xF;
                             }
                             //should be 27
-                            if (((Status6bits == 0x27) || (Status6bits == 0x37)) && ((StatusBits & 8) != 8))
+                            if (((Status6bits == 0x27) || (Status6bits == 0x37)) && ((StatusBits & 0b10000) != 0b10000))
                             {
                                 if ((StatusBits & 7) != 7)
                                 {
                                     myLog("It seems the app was started with servo on!\nRestarting");
                                     //servo restarts anyway, probably Control is 7 from shutdown
                                     myControlwordSpan[0] = 0x7;
-                                    StatusBits = 14;
+                                    StatusBits = 0b11110;
                                 }
                                 else { 
-                                    myLog($"Ready to go with Statusword: {myStatuswordSpan[0]:X4}h");
-                                    NextStatusBits = 15;
-                                    
-                                    myLog($"Mode!");
-                                    myModesOfOperation[0] = 1;                                    
+                                    myLog($"Servo enabled with Statusword: {myStatuswordSpan[0]:X4}h");
+                                    NextStatusBits = 0b11111;                        
                                 }
                             }
 
-                            if ((ModesOfOperation==1) && ((StatusBits & 16) != 16))
+                            //if ((ModesOfOperation==1) && ((StatusBits & 16) != 16))
+                            if (StatusBits == 0b11111)
                             {
-                                NextStatusBits = 31;
-                                myLog($"Pos!");
+                                NextStatusBits = 0b111111;
+                                myLog($"Setting TargetPosition(607Ah) to 5 000 000!");
                                 myTargetPositionSpan[0] = 5000000;
                             }
 
-                            if ((TargetPosition != 0) && ((StatusBits & 32) != 32))
+                            if ((TargetPosition != 0) && ((StatusBits & 0b1000000) != 0b1000000))
                             {
-                                NextStatusBits = 63;
-                                myLog($"Control!");
-                                //myControlwordSpan[0] = 0x1F;
-                                myControlwordSpan[0] = 0x10;
-                                //no good
-                                //myControlwordSpan[0] = 0x20;
+                                NextStatusBits = 0b1111111;
+                                myLog($"Setting Controlword(6040h) to 1Fh!");                                
+                                myControlwordSpan[0] = 0x1F;                                
                             }
 
-                            if ((StatusWord == 0x9637) && ((StatusBits & 64) != 64))
+                            if ((StatusWord == 0x9637) && ((StatusBits & 0b10000000) != 0b10000000))
                             {
-                                NextStatusBits = 127;
-                                myLog($"Control down!");
+                                NextStatusBits = 0b11111111;
+                                myLog($"Setting Controlword(6040h) to 0h!");
                                 myControlwordSpan[0] = 0x0;
                             }
 
