@@ -54,23 +54,24 @@ namespace SampleMaster
             Console.WriteLine("{0:X}", (0x8637 & 0x3F) & 0x27);
             Console.WriteLine("{0:X}",  (0x8637 & 0x27));
 
+            var cwName = "Controlword(6040h)";
             while (false)
             {
                 if (StatusBits == 0)
                 {
-                    myLog($"{loopCounter}: Setting CW to 6h (Shutdown)");
+                    myLog($"{loopCounter}: Setting {cwName} to 6h (Shutdown)");
                     StatusBits = 1;
                     myControlwordSpan[0] = 0x6;
                 }
                 if (((StatusWord & 0x21) == 0x21) && ((StatusBits & 2) != 2))
                 {
-                    myLog($"{loopCounter}: Setting CW to 7h (Switch On) {(StatusWord & 0x21):X4}");
+                    myLog($"{loopCounter}: Setting {cwName} to 7h (Switch On) {(StatusWord & 0x21):X4}");
                     StatusBits = 3;
                     myControlwordSpan[0] = 0x7;
                 }
                 if (((StatusWord & 0x23) == 0x23) && ((StatusBits & 4) != 4))
                 {
-                    myLog($"{loopCounter}: Setting CW to Fh (Enable Operation)");
+                    myLog($"{loopCounter}: Setting {cwName} to Fh (Enable Operation)");
                     StatusBits = 7;
                     myControlwordSpan[0] = 0xF;
                 }
@@ -102,7 +103,7 @@ namespace SampleMaster
             //var interfaceName = "Wi-Fi";
             //var interfaceName = "Ethernet 3";
             var interfaceName = ConfigurationManager.AppSettings["interfaceName"];
-            Console.WriteLine("ver 230615.01");
+            Console.WriteLine("ver 230620.00");
             Console.WriteLine("Connecting interfaceName:" + interfaceName + " (case sensitive)");
 
             /* Set ESI location. Make sure it contains ESI files! The default path is /home/{user}/.local/share/ESI */
@@ -177,7 +178,7 @@ namespace SampleMaster
                     Console.WriteLine(EcUtilities.GetSlaveStateDescription(master.Context, slaves.SelectMany(x => x.Descendants()).ToList()));
                     logger.LogError(ex.Message);
                     throw;
-                }
+                }                                            
 
                 /* start master */
                 var random = new Random();
@@ -201,7 +202,7 @@ namespace SampleMaster
                 var task = Task.Run(() =>
                 {
                     var sleepTime = 1000 / (int)settings.CycleFrequency;
-                    sleepTime = 300;
+                    sleepTime = 1000;
                     Console.WriteLine($"sleepTime: {sleepTime}");
 
                     //603fh
@@ -222,6 +223,8 @@ namespace SampleMaster
                     var loopCounter = 0;
                     var StatusBits = 0;
                     var NextStatusBits = 0;
+
+                    var cwName = "Controlword(6040h)";
 
                     //skips the initialisation
                     //StatusBits = 16;
@@ -244,8 +247,9 @@ namespace SampleMaster
                             //if (ControlWord != myControlwordSpan[0]) myLog($"Controlword is: {myControlwordSpan[0]:X4}h");
                             ControlWord = myControlwordSpan[0];
 
-                            Span<int> myPosActualSpan = new Span<int>(varPosActual.DataPtr.ToPointer(), 1);                            
-                            if (((StatusBits & 15) == 15) && (PositionActual != myPosActualSpan[0])) myLog($"PosActual is: {myPosActualSpan[0]}");
+                            Span<int> myPosActualSpan = new Span<int>(varPosActual.DataPtr.ToPointer(), 1);
+                            //if (((StatusBits & 15) == 15) && (PositionActual != myPosActualSpan[0])) myLog($"PosActual is: {myPosActualSpan[0]}");
+                            if (PositionActual != myPosActualSpan[0]) myLog($"PosActual is: {myPosActualSpan[0]}");
                             PositionActual = myPosActualSpan[0];
 
                             Span<int> myTargetPositionSpan = new Span<int>(varTargetPosition.DataPtr.ToPointer(), 1);                            
@@ -281,7 +285,7 @@ namespace SampleMaster
 
                             if (((StatusWord & 0x7F) == 0x40) && (StatusBits == 1))
                             {
-                                myLog("Setting CW to 6h (Shutdown)");
+                                myLog($"Setting {cwName} to 6h (Shutdown)");
                                 StatusBits = 0b11;
                                 myControlwordSpan[0] = 0x6;
                             }
@@ -290,14 +294,14 @@ namespace SampleMaster
 
                             if ((Status6bits == 0x21) && ((StatusBits & 0b100) != 0b100))
                             {
-                                myLog($"Setting CW to 7h (Switch On)");
+                                myLog($"Setting {cwName} to 7h (Switch On)");
                                 StatusBits = 0b111;
                                 myControlwordSpan[0] = 0x7;
                             }
                             //should be 23
                             if (((Status6bits == 0x23) || (Status6bits == 0x33)) && ((StatusBits & 0b1000) != 0b1000))
                             {
-                                myLog("Setting CW to Fh (Enable Operation)");
+                                myLog($"Setting {cwName} to Fh (Enable Operation)");
                                 StatusBits = 0b1111;
                                 myControlwordSpan[0] = 0xF;
                             }
@@ -328,18 +332,22 @@ namespace SampleMaster
                             if ((TargetPosition != 0) && ((StatusBits & 0b1000000) != 0b1000000))
                             {
                                 NextStatusBits = 0b1111111;
-                                myLog($"Setting Controlword(6040h) to 1Fh!");                                
-                                myControlwordSpan[0] = 0x1F;                                
+                                myLog($"Setting {cwName} to 1Fh (New Set-poit)");
+                                myControlwordSpan[0] = 0x1F;
                             }
 
                             if ((StatusWord == 0x9637) && ((StatusBits & 0b10000000) != 0b10000000))
                             {
                                 NextStatusBits = 0b11111111;
-                                myLog($"Setting Controlword(6040h) to 0h!");
-                                myControlwordSpan[0] = 0x0;
+
+                                //ushort mask = 1 << 4;
+                                //myControlwordSpan[0] = (ushort)(myControlwordSpan[0] & ~mask);
+
+                                //myLog($"Setting {cwName} bit4 to 0h!{mask:X4}");
+                                //myControlwordSpan[0] = 0x0;
                             }
 
-                                Thread.Sleep(sleepTime);
+                            Thread.Sleep(sleepTime);
 
                             if (NextStatusBits != 0) StatusBits = NextStatusBits;
                             NextStatusBits = 0;
@@ -368,7 +376,7 @@ namespace SampleMaster
                     //}
                 }, cts.Token);
 
-                Console.WriteLine("waiting for the key...");
+                //Console.WriteLine("waiting for the key...");
                 /* wait for stop signal */
                 Console.ReadKey(true);
 
