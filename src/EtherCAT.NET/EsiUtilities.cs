@@ -27,14 +27,14 @@ namespace EtherCAT.NET
             _cacheDirectoryPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "EtherCAT.NET", "Cache");
 
             Directory.CreateDirectory(_cacheDirectoryPath);
-
+            Console.WriteLine($"_cacheDirectoryPath:{_cacheDirectoryPath}");
             EsiUtilities.LoadEsiCache();
             EsiUtilities.SourceEtherCatInfos = new List<EtherCATInfo>();
         }
 
         #endregion
 
-        #region I/O
+            #region I/O
 
         private static EtherCATInfo LoadEsi(string esiFileName)
         {

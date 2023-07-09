@@ -103,7 +103,7 @@ namespace SampleMaster
             //var interfaceName = "Wi-Fi";
             //var interfaceName = "Ethernet 3";
             var interfaceName = ConfigurationManager.AppSettings["interfaceName"];
-            Console.WriteLine("ver 230620.00");
+            Console.WriteLine("ver 230621.00");
             Console.WriteLine("Connecting interfaceName:" + interfaceName + " (case sensitive)");
 
             /* Set ESI location. Make sure it contains ESI files! The default path is /home/{user}/.local/share/ESI */
@@ -202,7 +202,8 @@ namespace SampleMaster
                 var task = Task.Run(() =>
                 {
                     var sleepTime = 1000 / (int)settings.CycleFrequency;
-                    sleepTime = 1000;
+                    sleepTime = 1;
+                    //sleepTime = 300;
                     Console.WriteLine($"sleepTime: {sleepTime}");
 
                     //603fh
@@ -248,8 +249,8 @@ namespace SampleMaster
                             ControlWord = myControlwordSpan[0];
 
                             Span<int> myPosActualSpan = new Span<int>(varPosActual.DataPtr.ToPointer(), 1);
-                            //if (((StatusBits & 15) == 15) && (PositionActual != myPosActualSpan[0])) myLog($"PosActual is: {myPosActualSpan[0]}");
-                            if (PositionActual != myPosActualSpan[0]) myLog($"PosActual is: {myPosActualSpan[0]}");
+                            if (((StatusBits & 0b11111111) == 0b11111111) && (PositionActual != myPosActualSpan[0])) myLog($"PosActual is: {myPosActualSpan[0]}");
+                            //if (PositionActual != myPosActualSpan[0]) myLog($"PosActual is: {myPosActualSpan[0]}");
                             PositionActual = myPosActualSpan[0];
 
                             Span<int> myTargetPositionSpan = new Span<int>(varTargetPosition.DataPtr.ToPointer(), 1);                            
@@ -277,8 +278,9 @@ namespace SampleMaster
                             //are we good to start - Status ending with 40h?
                             if (((StatusWord & 0x7F) == 0x40) && ((StatusBits & 0b1) == 0))
                             {
-                                myLog($"setting ModesOfOperation(6060h) to 1");
-                                myModesOfOperation[0] = 1;
+                                myLog($"setting ModesOfOperation(6060h) to 8");
+                                //myModesOfOperation[0] = 1;
+                                myModesOfOperation[0] = 8;
                                 NextStatusBits = 1;
                                 
                             }
@@ -326,7 +328,7 @@ namespace SampleMaster
                             {
                                 NextStatusBits = 0b111111;
                                 myLog($"Setting TargetPosition(607Ah) to 5 000 000!");
-                                myTargetPositionSpan[0] = 5000000;
+                                myTargetPositionSpan[0] = PositionActual - 10;
                             }
 
                             if ((TargetPosition != 0) && ((StatusBits & 0b1000000) != 0b1000000))
@@ -334,20 +336,27 @@ namespace SampleMaster
                                 NextStatusBits = 0b1111111;
                                 myLog($"Setting {cwName} to 1Fh (New Set-poit)");
                                 myControlwordSpan[0] = 0x1F;
+                                //myControlwordSpan[0] = 0x3F;
                             }
 
-                            if ((StatusWord == 0x9637) && ((StatusBits & 0b10000000) != 0b10000000))
+
+                            //CSP control 230709
+                            if (StatusBits == 0b1111111)
                             {
-                                NextStatusBits = 0b11111111;
-
-                                //ushort mask = 1 << 4;
-                                //myControlwordSpan[0] = (ushort)(myControlwordSpan[0] & ~mask);
-
-                                //myLog($"Setting {cwName} bit4 to 0h!{mask:X4}");
-                                //myControlwordSpan[0] = 0x0;
+                                myTargetPositionSpan[0] = PositionActual - 10;
                             }
+                                //if ((StatusWord == 0x9637) && ((StatusBits & 0b10000000) != 0b10000000))
+                                //{
+                                //    NextStatusBits = 0b11111111;
 
-                            Thread.Sleep(sleepTime);
+                                //    //ushort mask = 1 << 4;
+                                //    //myControlwordSpan[0] = (ushort)(myControlwordSpan[0] & ~mask);
+
+                                //    myLog($"We got rising edge (bit12 os Statusword is 1), setting {cwName} bit4 to 0h");
+                                //    //myControlwordSpan[0] = 0x0;
+                                //}
+
+                                Thread.Sleep(sleepTime);
 
                             if (NextStatusBits != 0) StatusBits = NextStatusBits;
                             NextStatusBits = 0;
