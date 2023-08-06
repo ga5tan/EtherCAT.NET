@@ -103,7 +103,7 @@ namespace SampleMaster
             //var interfaceName = "Wi-Fi";
             //var interfaceName = "Ethernet 3";
             var interfaceName = ConfigurationManager.AppSettings["interfaceName"];
-            Console.WriteLine("ver 230621.00");
+            Console.WriteLine("ver 230806.00");
             Console.WriteLine("Connecting interfaceName:" + interfaceName + " (case sensitive)");
 
             /* Set ESI location. Make sure it contains ESI files! The default path is /home/{user}/.local/share/ESI */
@@ -295,7 +295,7 @@ namespace SampleMaster
 
                                 myLog($"Setting 0x6081 Profile velocity to 0x900");
                                 var dataset = new List<object>();
-                                dataset.Add((ushort)0x00);
+                                dataset.Add((ushort)0x900);
                                 EcUtilities.SdoWrite(master.Context, 0, 0x6081, 0, dataset);
                             }
 
