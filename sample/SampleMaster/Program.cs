@@ -273,14 +273,16 @@ namespace SampleMaster
                                 myLog($"Setting 80h (Fault Reset)");
                                 StatusBits = 0;
                                 myControlwordSpan[0] = 0x80;
+                                //230806
+                                myTargetPositionSpan[0] = 0; //Cancel enabling servo
                             }
 
                             //are we good to start - Status ending with 40h?
                             if (((StatusWord & 0x7F) == 0x40) && ((StatusBits & 0b1) == 0))
                             {
-                                myLog($"setting ModesOfOperation(6060h) to 8");
-                                //myModesOfOperation[0] = 1;
-                                myModesOfOperation[0] = 8;
+                                myLog($"setting ModesOfOperation(6060h) to 1");
+                                myModesOfOperation[0] = 1;
+                                //myModesOfOperation[0] = 8;
                                 NextStatusBits = 1;
                                 
                             }
@@ -290,6 +292,11 @@ namespace SampleMaster
                                 myLog($"Setting {cwName} to 6h (Shutdown)");
                                 StatusBits = 0b11;
                                 myControlwordSpan[0] = 0x6;
+
+                                myLog($"Setting 0x6081 Profile velocity to 0x900");
+                                var dataset = new List<object>();
+                                dataset.Add((ushort)0x00);
+                                EcUtilities.SdoWrite(master.Context, 0, 0x6081, 0, dataset);
                             }
 
                             Status6bits = (StatusWord & 0x3F);
@@ -328,23 +335,29 @@ namespace SampleMaster
                             {
                                 NextStatusBits = 0b111111;
                                 myLog($"Setting TargetPosition(607Ah) to 5 000 000!");
-                                myTargetPositionSpan[0] = PositionActual - 10;
+                                //myTargetPositionSpan[0] = PositionActual - 10;
+                                myTargetPositionSpan[0] = 5000000;
                             }
 
                             if ((TargetPosition != 0) && ((StatusBits & 0b1000000) != 0b1000000))
                             {
-                                NextStatusBits = 0b1111111;
+                                NextStatusBits = 0b11111111;
                                 myLog($"Setting {cwName} to 1Fh (New Set-poit)");
                                 myControlwordSpan[0] = 0x1F;
                                 //myControlwordSpan[0] = 0x3F;
+
+                                //var dataset1 = new byte[2];
+                                //EcUtilities.SdoRead(master.Context, 0, 0x6041, 1, ref dataset1);
+                                //ushort usStatus = (ushort) BitConverter.ToInt16(dataset1, 0);
+                                //myLog($"SDOStatusword is: {usStatus:X4}h");
                             }
 
 
                             //CSP control 230709
-                            if (StatusBits == 0b1111111)
-                            {
-                                myTargetPositionSpan[0] = PositionActual - 10;
-                            }
+                            //if (StatusBits == 0b1111111)
+                            //{
+                            //    myTargetPositionSpan[0] = PositionActual - 10;
+                            //}
                                 //if ((StatusWord == 0x9637) && ((StatusBits & 0b10000000) != 0b10000000))
                                 //{
                                 //    NextStatusBits = 0b11111111;
