@@ -103,7 +103,7 @@ namespace SampleMaster
             //var interfaceName = "Wi-Fi";
             //var interfaceName = "Ethernet 3";
             var interfaceName = ConfigurationManager.AppSettings["interfaceName"];
-            Console.WriteLine("ver 230806.00");
+            Console.WriteLine("ver 230830.00");
             Console.WriteLine("Connecting interfaceName:" + interfaceName + " (case sensitive)");
 
             /* Set ESI location. Make sure it contains ESI files! The default path is /home/{user}/.local/share/ESI */
@@ -334,9 +334,9 @@ namespace SampleMaster
                             if (StatusBits == 0b11111)
                             {
                                 NextStatusBits = 0b111111;
-                                myLog($"Setting TargetPosition(607Ah) to 5 000 000!");
+                                myLog($"Setting TargetPosition(607Ah) to -5 000 000!");
                                 //myTargetPositionSpan[0] = PositionActual - 10;
-                                myTargetPositionSpan[0] = 5000000;
+                                myTargetPositionSpan[0] = -5000000;
                             }
 
                             if ((TargetPosition != 0) && ((StatusBits & 0b1000000) != 0b1000000))
