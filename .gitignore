@@ -1,7 +1,8 @@
 .vs/
 .vscode/
 artifacts/
-
+fcHMI/bin/
+fcHMI/bin/Debug/
 *.suo
 *.user
 /native/out/build/x64-Debug/.cmake/api/v1/reply/index-2023-04-13T14-59-51-0355.json

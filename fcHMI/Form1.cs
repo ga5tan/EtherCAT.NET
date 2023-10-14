@@ -16,5 +16,16 @@ namespace fcHMI
         {
             InitializeComponent();
         }
+
+        public void SetLog(string sMsg)
+        {
+            txtConsole.Text = sMsg;
+        }
+
+        private void btRead_Click(object sender, EventArgs e)
+        {
+            //Program.sMessage = "fero";
+            SetLog(Program.sMessage);
+        }
     }
 }
