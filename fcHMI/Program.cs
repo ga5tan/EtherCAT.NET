@@ -57,7 +57,7 @@ namespace fcHMI
         static async Task MainECMasterTester()
         {
 
-            Console.WriteLine("ver 231014.00");            
+            Console.WriteLine("ver 231014.01");            
             var cts = new CancellationTokenSource();
             var task = Task.Run(() =>
             {
@@ -78,12 +78,8 @@ namespace fcHMI
         {
             System.AppDomain.CurrentDomain.UnhandledException += UnhandledExceptionTrapper;
 
-            /* Set interface name. Edit this to suit your needs. */
-            //var interfaceName = "eth0";
-            var interfaceName = "Wi-Fi";
-            //var interfaceName = "Ethernet 3";
-            //var interfaceName = ConfigurationManager.AppSettings["interfaceName"];
-            myLog("ver 231014.00", false);
+            var interfaceName = ConfigurationManager.AppSettings["interfaceName"];
+            myLog("ver 231014.01", false);
             myLog("Connecting interfaceName:" + interfaceName + " (case sensitive)", false);
 
             /* Set ESI location. Make sure it contains ESI files! The default path is /home/{user}/.local/share/ESI */
