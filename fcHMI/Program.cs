@@ -52,34 +52,14 @@ namespace fcHMI
             sMessage += sOutput + Environment.NewLine;
             if (mainForm != null)
             mainForm.SetLog(sMessage);
-        }
-
-        static async Task MainECMasterTester()
-        {
-
-            Console.WriteLine("ver 231102.00");            
-            var cts = new CancellationTokenSource();
-            var task = Task.Run(() =>
-            {
-                var sleepTime = 1000;
-
-                while (!cts.IsCancellationRequested)
-                {
-                    //cts.Cancel();
-                    Thread.Sleep(sleepTime);
-                    Console.WriteLine("master lives " + sMessage);
-                }
-            }, cts.Token);
-
-            await task;
-        }
+        }        
 
         static async Task MainECMaster()
         {
             System.AppDomain.CurrentDomain.UnhandledException += UnhandledExceptionTrapper;
 
             var interfaceName = ConfigurationManager.AppSettings["interfaceName"];
-            myLog("ver 231014.01", false);
+            myLog("ver 231102.02", false);
             myLog("Connecting interfaceName:" + interfaceName + " (case sensitive)", false);
 
             /* Set ESI location. Make sure it contains ESI files! The default path is /home/{user}/.local/share/ESI */
@@ -380,7 +360,9 @@ namespace fcHMI
                 foreach (var variable in pdo.Variables)
                 {
                     if (variable.DataPtr.ToInt64() != 0)
-                        message.AppendLine($"{iCounter}.) '{variable.Name}', Idx: '{variable.Index:X4}h', Len: {variable.BitLength}, Offset {variable.BitOffset}");
+
+                        message.AppendLine($"{iCounter}.) '{variable.Name}', Idx: '{variable.Index:X4}h', DataPtr: '{variable.DataPtr.ToInt64()}'");
+                    //message.AppendLine($"{iCounter}.) '{variable.Name}', Idx: '{variable.Index:X4}h', Len: {variable.BitLength}, Offset {variable.BitOffset}");
                     //message.AppendLine($"{iCounter}.) pdoName '{pdo.Name}' variableName: '{variable.Name}', DataPtr: '{variable.DataPtr.ToInt64()}', Len: {variable.BitLength}");
                 }
                 iCounter++;
@@ -396,6 +378,26 @@ namespace fcHMI
             myLog("\n\nPress Enter to continue", false);
             //Console.ReadLine();
             Environment.Exit(1);
+        }
+
+        static async Task MainECMasterTester()
+        {
+
+            Console.WriteLine("ver 231102.00");
+            var cts = new CancellationTokenSource();
+            var task = Task.Run(() =>
+            {
+                var sleepTime = 1000;
+
+                while (!cts.IsCancellationRequested)
+                {
+                    //cts.Cancel();
+                    Thread.Sleep(sleepTime);
+                    Console.WriteLine("master lives " + sMessage);
+                }
+            }, cts.Token);
+
+            await task;
         }
     }       
 }
