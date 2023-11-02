@@ -57,7 +57,7 @@ namespace fcHMI
         static async Task MainECMasterTester()
         {
 
-            Console.WriteLine("ver 231014.01");            
+            Console.WriteLine("ver 231102.00");            
             var cts = new CancellationTokenSource();
             var task = Task.Run(() =>
             {
@@ -162,7 +162,7 @@ namespace fcHMI
 
                 //byG              
 
-                //listMappedVariables(slaves);
+                listMappedVariables(slaves);
 
                 var pdoAnalogIn = slaves[0].DynamicData.Pdos;
                 var varErrorCode = pdoAnalogIn[0].Variables.Where(x => x.Name == "Error code").First();
@@ -368,6 +368,25 @@ namespace fcHMI
             }
             //Console.WriteLine("return");
             return; /* remove this to run real world sample*/            
+        }
+
+        static void listMappedVariables(List<SlaveInfo> slaves)
+        {
+            var message = new StringBuilder();
+            int iCounter = 0;
+            foreach (var pdo in slaves[0].DynamicData.Pdos)
+            {
+
+                foreach (var variable in pdo.Variables)
+                {
+                    if (variable.DataPtr.ToInt64() != 0)
+                        message.AppendLine($"{iCounter}.) '{variable.Name}', Idx: '{variable.Index:X4}h', Len: {variable.BitLength}, Offset {variable.BitOffset}");
+                    //message.AppendLine($"{iCounter}.) pdoName '{pdo.Name}' variableName: '{variable.Name}', DataPtr: '{variable.DataPtr.ToInt64()}', Len: {variable.BitLength}");
+                }
+                iCounter++;
+            }
+            Console.WriteLine(message.ToString().TrimEnd());
+            //logger.LogInformation(message.ToString().TrimEnd());
         }
         static void UnhandledExceptionTrapper(object sender, UnhandledExceptionEventArgs e)
         {

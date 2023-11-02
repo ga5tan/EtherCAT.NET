@@ -90,7 +90,7 @@ namespace fcHMI
             this.Controls.Add(this.lPosition);
             this.Controls.Add(this.btRead);
             this.Name = "Form1";
-            this.Text = "Form1";
+            this.Text = "fcHMI";
             this.ResumeLayout(false);
             this.PerformLayout();
 
