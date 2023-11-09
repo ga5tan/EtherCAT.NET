@@ -13,6 +13,8 @@ using EtherCAT.NET.Infrastructure;
 using EtherCAT.NET.Extension;
 
 using System.Configuration;
+using System.Data;
+using System.Net.NetworkInformation;
 
 
 namespace SampleMaster
@@ -28,8 +30,7 @@ namespace SampleMaster
             var message = new StringBuilder();
             int iCounter = 0;
             foreach (var pdo in slaves[0].DynamicData.Pdos)
-            {
-
+            {                
                 foreach (var variable in pdo.Variables)
                 {
                     if (variable.DataPtr.ToInt64() != 0)
@@ -103,7 +104,7 @@ namespace SampleMaster
             //var interfaceName = "Wi-Fi";
             //var interfaceName = "Ethernet 3";
             var interfaceName = ConfigurationManager.AppSettings["interfaceName"];
-            Console.WriteLine("ver 231102.03");
+            Console.WriteLine("ver 231109.00");
             Console.WriteLine("Connecting interfaceName:" + interfaceName + " (case sensitive)");
 
             /* Set ESI location. Make sure it contains ESI files! The default path is /home/{user}/.local/share/ESI */
@@ -144,6 +145,16 @@ namespace SampleMaster
             {
                 // If you have special extensions for this slave, add it here:                    
                 // slave.Extensions.Add(new MyFancyExtension());                
+
+                var dataset = new List<object>();
+                dataset.Add((uint)0x000000FF);
+                
+                var requests = new List<SdoWriteRequest>()
+                {                        
+                    new SdoWriteRequest(0x6081, 0x0, dataset)
+                };
+
+                //slave.Extensions.Add(new InitialSettingsExtension(requests));
 
                 EcUtilities.CreateDynamicData(settings.EsiDirectoryPath, slave);
             });
@@ -189,6 +200,8 @@ namespace SampleMaster
                 //listMappedVariables(slaves);
 
                 var pdoAnalogIn = slaves[0].DynamicData.Pdos;
+                var slaveIndex = (ushort)(Convert.ToUInt16(slaves.ToList().IndexOf(slaves[0])) + 1);
+                myLog($"slaveIndex:{slaveIndex}");
                 var varErrorCode = pdoAnalogIn[0].Variables.Where(x => x.Name == "Error code").First();
                 var varStatusWord = pdoAnalogIn[0].Variables.Where(x => x.Name == "Statusword").First();
                 var varPosActual = pdoAnalogIn[0].Variables.Where(x => x.Name == "Position actual value").First();
@@ -295,8 +308,17 @@ namespace SampleMaster
 
                                 myLog($"Setting 0x6081 Profile velocity to 0x900");
                                 var dataset = new List<object>();
-                                dataset.Add((ushort)0x900);
-                                EcUtilities.SdoWrite(master.Context, 0, 0x6081, 0, dataset);
+
+                                //dataset.Add((ushort)0x00FF);
+                                //dataset.Add((ushort)0x00FF);
+
+                                dataset.Add((ushort)0xFF00);
+                                dataset.Add((ushort)0x00);
+
+                                //231108 - it actually seems, that SDOWrite does not work. It only works, when we set it up in TwinCAT                                
+                                //dataset.Add((uint)0x10);
+
+                                EcUtilities.SdoWrite(master.Context, slaveIndex, 0x6081, 0, dataset);
                             }
 
                             Status6bits = (StatusWord & 0x3F);
@@ -334,7 +356,7 @@ namespace SampleMaster
                             if (StatusBits == 0b11111)
                             {
                                 NextStatusBits = 0b111111;
-                                myLog($"Setting TargetPosition(607Ah) to -5 000 000!");
+                                myLog($"Setting TargetPosition(607Ah) to 5 000 000!");
                                 //myTargetPositionSpan[0] = PositionActual - 10;
                                 myTargetPositionSpan[0] = -5000000;
                             }
@@ -346,8 +368,12 @@ namespace SampleMaster
                                 myControlwordSpan[0] = 0x1F;
                                 //myControlwordSpan[0] = 0x3F;
 
+                                var dataset1 = new byte[4];
                                 //var dataset1 = new byte[2];
-                                //EcUtilities.SdoRead(master.Context, 0, 0x6041, 1, ref dataset1);
+
+                                EcUtilities.SdoRead(master.Context, slaveIndex, 0x6081, 4, ref dataset1);
+                                uint uiProfileSpeed= BitConverter.ToUInt32(dataset1, 0);
+                                myLog($"ProfileSpeed is: {uiProfileSpeed:X4}h");
                                 //ushort usStatus = (ushort) BitConverter.ToInt16(dataset1, 0);
                                 //myLog($"SDOStatusword is: {usStatus:X4}h");
                             }
