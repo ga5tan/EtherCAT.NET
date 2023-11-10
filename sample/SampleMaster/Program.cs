@@ -79,11 +79,7 @@ namespace SampleMaster
                 if (((StatusWord & 0x27) == 0x27) && ((StatusBits & 8) != 8))
                 {
                     myLog($"{loopCounter}: Ready to go!");
-                    StatusBits = 15;
-                    //Console.WriteLine($"Target Pos GO!");
-                    //myControlwordSpan[0] = 0x1F;
-                    //myModesOfOperation[0] = 1;
-                    //myTargetPositionSpan[0] = 5000000;
+                    StatusBits = 15;                 
                 }
 
                 Thread.Sleep(500);
@@ -104,7 +100,7 @@ namespace SampleMaster
             //var interfaceName = "Wi-Fi";
             //var interfaceName = "Ethernet 3";
             var interfaceName = ConfigurationManager.AppSettings["interfaceName"];
-            Console.WriteLine("ver 231109.00");
+            Console.WriteLine("ver 231110.00");
             Console.WriteLine("Connecting interfaceName:" + interfaceName + " (case sensitive)");
 
             /* Set ESI location. Make sure it contains ESI files! The default path is /home/{user}/.local/share/ESI */
@@ -146,13 +142,13 @@ namespace SampleMaster
                 // If you have special extensions for this slave, add it here:                    
                 // slave.Extensions.Add(new MyFancyExtension());                
 
-                var dataset = new List<object>();
-                dataset.Add((uint)0x000000FF);
+                //var dataset = new List<object>();
+                //dataset.Add((uint)0x000000FF);
                 
-                var requests = new List<SdoWriteRequest>()
-                {                        
-                    new SdoWriteRequest(0x6081, 0x0, dataset)
-                };
+                //var requests = new List<SdoWriteRequest>()
+                //{                        
+                //    new SdoWriteRequest(0x6081, 0x0, dataset)
+                //};
 
                 //slave.Extensions.Add(new InitialSettingsExtension(requests));
 
@@ -215,7 +211,7 @@ namespace SampleMaster
                 var task = Task.Run(() =>
                 {
                     var sleepTime = 1000 / (int)settings.CycleFrequency;
-                    sleepTime = 1;
+                    sleepTime = 30;
                     //sleepTime = 300;
                     Console.WriteLine($"sleepTime: {sleepTime}");
 
@@ -262,8 +258,7 @@ namespace SampleMaster
                             ControlWord = myControlwordSpan[0];
 
                             Span<int> myPosActualSpan = new Span<int>(varPosActual.DataPtr.ToPointer(), 1);
-                            if (((StatusBits & 0b11111111) == 0b11111111) && (PositionActual != myPosActualSpan[0])) myLog($"PosActual is: {myPosActualSpan[0]}");
-                            //if (PositionActual != myPosActualSpan[0]) myLog($"PosActual is: {myPosActualSpan[0]}");
+                            if (((StatusBits & 0b11111111) == 0b11111111) && (PositionActual != myPosActualSpan[0])) myLog($"PosActual is: {myPosActualSpan[0]:#,##0}");                            
                             PositionActual = myPosActualSpan[0];
 
                             Span<int> myTargetPositionSpan = new Span<int>(varTargetPosition.DataPtr.ToPointer(), 1);                            
@@ -309,15 +304,12 @@ namespace SampleMaster
                                 myLog($"Setting 0x6081 Profile velocity to 0x900");
                                 var dataset = new List<object>();
 
-                                //dataset.Add((ushort)0x00FF);
-                                //dataset.Add((ushort)0x00FF);
-
-                                dataset.Add((ushort)0xFF00);
-                                dataset.Add((ushort)0x00);
-
-                                //231108 - it actually seems, that SDOWrite does not work. It only works, when we set it up in TwinCAT                                
-                                //dataset.Add((uint)0x10);
-
+                                //231108 - it actually seems, that SDOWrite does not work. It only works, when we set it up in TwinCAT
+                                ////works
+                                dataset.Add((uint)0x00FFBBCC);
+                                //dataset.Add((uint)0x0);
+                                dataset.Add((byte)0x00);//needs to be here
+                                
                                 EcUtilities.SdoWrite(master.Context, slaveIndex, 0x6081, 0, dataset);
                             }
 
@@ -356,9 +348,9 @@ namespace SampleMaster
                             if (StatusBits == 0b11111)
                             {
                                 NextStatusBits = 0b111111;
-                                myLog($"Setting TargetPosition(607Ah) to 5 000 000!");
+                                myLog($"Setting TargetPosition(607Ah) to 50 000 000!");
                                 //myTargetPositionSpan[0] = PositionActual - 10;
-                                myTargetPositionSpan[0] = -5000000;
+                                myTargetPositionSpan[0] = -50000000;
                             }
 
                             if ((TargetPosition != 0) && ((StatusBits & 0b1000000) != 0b1000000))
@@ -371,9 +363,13 @@ namespace SampleMaster
                                 var dataset1 = new byte[4];
                                 //var dataset1 = new byte[2];
 
-                                EcUtilities.SdoRead(master.Context, slaveIndex, 0x6081, 4, ref dataset1);
-                                uint uiProfileSpeed= BitConverter.ToUInt32(dataset1, 0);
-                                myLog($"ProfileSpeed is: {uiProfileSpeed:X4}h");
+                                EcUtilities.SdoRead(master.Context, slaveIndex, 0x6081, 0, ref dataset1);
+                                //uint uiProfileSpeed = BitConverter.ToUInt16(dataset1, 0);
+                                uint uiProfileSpeed = BitConverter.ToUInt32(dataset1, 0);
+                                myLog($"ProfileSpeed is: {uiProfileSpeed:X8}h");
+
+                                
+
                                 //ushort usStatus = (ushort) BitConverter.ToInt16(dataset1, 0);
                                 //myLog($"SDOStatusword is: {usStatus:X4}h");
                             }
