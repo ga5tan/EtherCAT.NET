@@ -21,76 +21,9 @@ namespace SampleMaster
 {
     class Program
     {
-        static void myLog(string sMsg)
-        {
-            Console.WriteLine($"{DateTime.UtcNow.ToString("hh:mm:ss.fff tt")}: {sMsg.TrimEnd()}");
-        }
-        static void listMappedVariables(List<SlaveInfo> slaves)
-        {
-            var message = new StringBuilder();
-            int iCounter = 0;
-            foreach (var pdo in slaves[0].DynamicData.Pdos)
-            {                
-                foreach (var variable in pdo.Variables)
-                {
-                    if (variable.DataPtr.ToInt64() != 0)
-                        message.AppendLine($"{iCounter}.) '{variable.Name}', Idx: '{variable.Index:X4}h', Len: {variable.BitLength}, Offset {variable.BitOffset}");
-                    //message.AppendLine($"{iCounter}.) pdoName '{pdo.Name}' variableName: '{variable.Name}', DataPtr: '{variable.DataPtr.ToInt64()}', Len: {variable.BitLength}");
-                }
-                iCounter++;
-            }
-            Console.WriteLine(message.ToString().TrimEnd());
-            //logger.LogInformation(message.ToString().TrimEnd());
-        }
-
-        static async Task Main2(string[] args)
-        {
-            Console.WriteLine("Tester");
-            ushort StatusWord = 0x8640;
-            var myControlwordSpan = new ushort[1];
-            var StatusBits = 0;
-            var loopCounter = 0;
-
-            Console.WriteLine("{0:X}", (0x8637 & 0x3F));
-            Console.WriteLine("{0:X}", (0x8637 & 0x3F) & 0x27);
-            Console.WriteLine("{0:X}",  (0x8637 & 0x27));
-
-            var cwName = "Controlword(6040h)";
-            while (false)
-            {
-                if (StatusBits == 0)
-                {
-                    myLog($"{loopCounter}: Setting {cwName} to 6h (Shutdown)");
-                    StatusBits = 1;
-                    myControlwordSpan[0] = 0x6;
-                }
-                if (((StatusWord & 0x21) == 0x21) && ((StatusBits & 2) != 2))
-                {
-                    myLog($"{loopCounter}: Setting {cwName} to 7h (Switch On) {(StatusWord & 0x21):X4}");
-                    StatusBits = 3;
-                    myControlwordSpan[0] = 0x7;
-                }
-                if (((StatusWord & 0x23) == 0x23) && ((StatusBits & 4) != 4))
-                {
-                    myLog($"{loopCounter}: Setting {cwName} to Fh (Enable Operation)");
-                    StatusBits = 7;
-                    myControlwordSpan[0] = 0xF;
-                }
-                if (((StatusWord & 0x27) == 0x27) && ((StatusBits & 8) != 8))
-                {
-                    myLog($"{loopCounter}: Ready to go!");
-                    StatusBits = 15;                 
-                }
-
-                Thread.Sleep(500);
-                loopCounter++;
-
-                if (loopCounter == 1) StatusWord = 0x8621;
-                if (loopCounter == 2) StatusWord = 0x8623;
-                if (loopCounter == 3) StatusWord = 0x8627;
-                
-            }
-        }
+        public static string sMessage;
+        //public static Form1 mainForm;
+        
         static async Task Main(string[] args)
         {
             System.AppDomain.CurrentDomain.UnhandledException += UnhandledExceptionTrapper;
@@ -100,8 +33,8 @@ namespace SampleMaster
             //var interfaceName = "Wi-Fi";
             //var interfaceName = "Ethernet 3";
             var interfaceName = ConfigurationManager.AppSettings["interfaceName"];
-            Console.WriteLine("ver 231110.00");
-            Console.WriteLine("Connecting interfaceName:" + interfaceName + " (case sensitive)");
+            myLog("ver 231112.00", false);
+            myLog("Connecting interfaceName:" + interfaceName + " (case sensitive)",false);
 
             /* Set ESI location. Make sure it contains ESI files! The default path is /home/{user}/.local/share/ESI */
             var localAppDataPath = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
@@ -109,7 +42,7 @@ namespace SampleMaster
             Directory.CreateDirectory(esiDirectoryPath);
 
             //C:\Users\Flexicam\AppData\Local\ESI
-            Console.WriteLine($"esiDirectoryPath: {esiDirectoryPath}");
+            myLog($"esiDirectoryPath: {esiDirectoryPath}", false);
 
             /* Copy native file. NOT required in end user scenarios, where EtherCAT.NET package is installed via NuGet! */
             var codeBase = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
@@ -135,7 +68,7 @@ namespace SampleMaster
             /* scan available slaves */
             var rootSlave = EcUtilities.ScanDevices(settings.InterfaceName);
 
-            Console.WriteLine($"Slaves: {rootSlave.Descendants().Count()}");
+            myLog($"Slaves: {rootSlave.Descendants().Count()}", false);
 
             rootSlave.Descendants().ToList().ForEach(slave =>
             {
@@ -166,7 +99,8 @@ namespace SampleMaster
                 message.AppendLine($"{slave.DynamicData.Name} (PDOs: {slave.DynamicData.Pdos.Count} - CSA: {slave.Csa})");
             }
 
-            logger.LogInformation(message.ToString().TrimEnd());
+            //logger.LogInformation(message.ToString().TrimEnd());
+            myLog(message.ToString().TrimEnd(), false);
 
             /* create variable references for later use */
             var variables = slaves.SelectMany(child => child.GetVariables()).ToList();
@@ -176,13 +110,13 @@ namespace SampleMaster
             {
                 try
                 {
-                    //Console.WriteLine("Pre-Configure");
+                    //myLog("Pre-Configure", false);
                     master.Configure(rootSlave);
-                    //Console.WriteLine("Master Configured");
+                    //myLog("Master Configured", false);
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine(EcUtilities.GetSlaveStateDescription(master.Context, slaves.SelectMany(x => x.Descendants()).ToList()));
+                    myLog(EcUtilities.GetSlaveStateDescription(master.Context, slaves.SelectMany(x => x.Descendants()).ToList()), false);
                     logger.LogError(ex.Message);
                     throw;
                 }                                            
@@ -213,7 +147,7 @@ namespace SampleMaster
                     var sleepTime = 1000 / (int)settings.CycleFrequency;
                     sleepTime = 30;
                     //sleepTime = 300;
-                    Console.WriteLine($"sleepTime: {sleepTime}");
+                    myLog($"sleepTime: {sleepTime}", false);
 
                     //603fh
                     ushort ErrorCode = 0;
@@ -357,39 +291,14 @@ namespace SampleMaster
                             {
                                 NextStatusBits = 0b11111111;
                                 myLog($"Setting {cwName} to 1Fh (New Set-poit)");
-                                myControlwordSpan[0] = 0x1F;
-                                //myControlwordSpan[0] = 0x3F;
+                                myControlwordSpan[0] = 0x1F;                                
 
-                                var dataset1 = new byte[4];
-                                //var dataset1 = new byte[2];
+                                var dataset1 = new byte[4];                                
 
-                                EcUtilities.SdoRead(master.Context, slaveIndex, 0x6081, 0, ref dataset1);
-                                //uint uiProfileSpeed = BitConverter.ToUInt16(dataset1, 0);
+                                EcUtilities.SdoRead(master.Context, slaveIndex, 0x6081, 0, ref dataset1);                                
                                 uint uiProfileSpeed = BitConverter.ToUInt32(dataset1, 0);
-                                myLog($"ProfileSpeed is: {uiProfileSpeed:X8}h");
-
-                                
-
-                                //ushort usStatus = (ushort) BitConverter.ToInt16(dataset1, 0);
-                                //myLog($"SDOStatusword is: {usStatus:X4}h");
+                                myLog($"ProfileSpeed is: {uiProfileSpeed:X8}h");                                
                             }
-
-
-                            //CSP control 230709
-                            //if (StatusBits == 0b1111111)
-                            //{
-                            //    myTargetPositionSpan[0] = PositionActual - 10;
-                            //}
-                                //if ((StatusWord == 0x9637) && ((StatusBits & 0b10000000) != 0b10000000))
-                                //{
-                                //    NextStatusBits = 0b11111111;
-
-                                //    //ushort mask = 1 << 4;
-                                //    //myControlwordSpan[0] = (ushort)(myControlwordSpan[0] & ~mask);
-
-                                //    myLog($"We got rising edge (bit12 os Statusword is 1), setting {cwName} bit4 to 0h");
-                                //    //myControlwordSpan[0] = 0x0;
-                                //}
 
                                 Thread.Sleep(sleepTime);
 
@@ -401,7 +310,7 @@ namespace SampleMaster
                             {
                                 myControlwordSpan[0] = 0x7;
                                 master.UpdateIO(DateTime.UtcNow);
-                                Console.WriteLine($"Shutting down servo!");
+                                myLog($"Shutting down servo!");
                                 Thread.Sleep(sleepTime);
                             }
                                 loopCounter++;
@@ -429,6 +338,74 @@ namespace SampleMaster
             }
             //Console.WriteLine("return");
             return; /* remove this to run real world sample*/
+
+            
+        }
+        static void UnhandledExceptionTrapper(object sender, UnhandledExceptionEventArgs e)
+        {
+            Console.WriteLine("\n\nApplication failed with unhandled exception:");
+            Console.WriteLine("----------------------------------------------");
+            Console.WriteLine(e.ExceptionObject.ToString());
+            Console.WriteLine("\n\nPress Enter to continue");
+            Console.ReadLine();
+            Environment.Exit(1);
+        }
+
+        static void myLog(string sMsg, bool bAddStamp = true)
+        {
+            var sOutput = "";
+            if (!bAddStamp)
+                sOutput = sMsg.TrimEnd();
+            else
+                sOutput = $"{DateTime.UtcNow.ToString("hh:mm:ss.fff tt")}: {sMsg.TrimEnd()}";
+
+            Console.WriteLine(sOutput);
+            sMessage += sOutput + Environment.NewLine;
+            //if (mainForm != null)
+            //    mainForm.SetLog(sMessage);
+        }
+        static void listMappedVariables(List<SlaveInfo> slaves)
+        {
+            var message = new StringBuilder();
+            int iCounter = 0;
+            foreach (var pdo in slaves[0].DynamicData.Pdos)
+            {
+                foreach (var variable in pdo.Variables)
+                {
+                    if (variable.DataPtr.ToInt64() != 0)
+                        message.AppendLine($"{iCounter}.) '{variable.Name}', Idx: '{variable.Index:X4}h', Len: {variable.BitLength}, Offset {variable.BitOffset}");
+                    //message.AppendLine($"{iCounter}.) pdoName '{pdo.Name}' variableName: '{variable.Name}', DataPtr: '{variable.DataPtr.ToInt64()}', Len: {variable.BitLength}");
+                }
+                iCounter++;
+            }
+            myLog(message.ToString().TrimEnd(), false);
+            //logger.LogInformation(message.ToString().TrimEnd());
+        }
+
+        static async Task RealWorldSample()
+        {
+            var interfaceName = ConfigurationManager.AppSettings["interfaceName"];
+            myLog("ver 231112.00", false);
+            myLog("Connecting interfaceName:" + interfaceName + " (case sensitive)", false);
+
+            /* Set ESI location. Make sure it contains ESI files! The default path is /home/{user}/.local/share/ESI */
+            var localAppDataPath = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+            var esiDirectoryPath = Path.Combine(localAppDataPath, "ESI");
+
+            /* create logger */
+            var loggerFactory = LoggerFactory.Create(loggingBuilder =>
+            {
+                loggingBuilder.SetMinimumLevel(LogLevel.Debug);
+                loggingBuilder.AddConsole();
+            });
+            var logger = loggerFactory.CreateLogger("EtherCAT Master");
+
+            /* create EtherCAT master settings (with 10 Hz cycle frequency) */
+            var settings = new EcSettings(cycleFrequency: 10U, esiDirectoryPath, interfaceName);
+
+            var rootSlave = EcUtilities.ScanDevices(settings.InterfaceName);
+            var slaves = rootSlave.Descendants().ToList();
+            var variables = slaves.SelectMany(child => child.GetVariables()).ToList();
 
             /* create EC Master (real world sample) */
             using (var master = new EcMaster(settings, logger))
@@ -558,14 +535,53 @@ namespace SampleMaster
             }
         }
 
-        static void UnhandledExceptionTrapper(object sender, UnhandledExceptionEventArgs e)
+        static async Task MainTester(string[] args)
         {
-            Console.WriteLine("\n\nApplication failed with unhandled exception:");
-            Console.WriteLine("----------------------------------------------");
-            Console.WriteLine(e.ExceptionObject.ToString());
-            Console.WriteLine("\n\nPress Enter to continue");
-            Console.ReadLine();
-            Environment.Exit(1);
+            Console.WriteLine("Tester");
+            ushort StatusWord = 0x8640;
+            var myControlwordSpan = new ushort[1];
+            var StatusBits = 0;
+            var loopCounter = 0;
+
+            Console.WriteLine("{0:X}", (0x8637 & 0x3F));
+            Console.WriteLine("{0:X}", (0x8637 & 0x3F) & 0x27);
+            Console.WriteLine("{0:X}", (0x8637 & 0x27));
+
+            var cwName = "Controlword(6040h)";
+            while (false)
+            {
+                if (StatusBits == 0)
+                {
+                    myLog($"{loopCounter}: Setting {cwName} to 6h (Shutdown)");
+                    StatusBits = 1;
+                    myControlwordSpan[0] = 0x6;
+                }
+                if (((StatusWord & 0x21) == 0x21) && ((StatusBits & 2) != 2))
+                {
+                    myLog($"{loopCounter}: Setting {cwName} to 7h (Switch On) {(StatusWord & 0x21):X4}");
+                    StatusBits = 3;
+                    myControlwordSpan[0] = 0x7;
+                }
+                if (((StatusWord & 0x23) == 0x23) && ((StatusBits & 4) != 4))
+                {
+                    myLog($"{loopCounter}: Setting {cwName} to Fh (Enable Operation)");
+                    StatusBits = 7;
+                    myControlwordSpan[0] = 0xF;
+                }
+                if (((StatusWord & 0x27) == 0x27) && ((StatusBits & 8) != 8))
+                {
+                    myLog($"{loopCounter}: Ready to go!");
+                    StatusBits = 15;
+                }
+
+                Thread.Sleep(500);
+                loopCounter++;
+
+                if (loopCounter == 1) StatusWord = 0x8621;
+                if (loopCounter == 2) StatusWord = 0x8623;
+                if (loopCounter == 3) StatusWord = 0x8627;
+
+            }
         }
     }
 }

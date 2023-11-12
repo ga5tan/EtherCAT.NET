@@ -28,16 +28,12 @@ namespace fcHMI
         [STAThread]
         static void Main()
         {
-            Console.WriteLine("Start");
+            System.AppDomain.CurrentDomain.UnhandledException += UnhandledExceptionTrapper;
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
-            Console.WriteLine("Before run");
-            //MainECMaster();
-            //Application.Run(new Form1());
             mainForm = new Form1();
             MainECMaster();
-            Application.Run(mainForm);
-            Console.WriteLine("After run");
+            Application.Run(mainForm);         
         }
 
         static void myLog(string sMsg, bool bAddStamp = true)
@@ -53,10 +49,12 @@ namespace fcHMI
             if (mainForm != null)
             mainForm.SetLog(sMessage);
         }        
-
         static async Task MainECMaster()
         {
-            System.AppDomain.CurrentDomain.UnhandledException += UnhandledExceptionTrapper;
+            try
+            {
+
+            
 
             var interfaceName = ConfigurationManager.AppSettings["interfaceName"];
             myLog("ver 231102.02", false);
@@ -346,10 +344,16 @@ namespace fcHMI
                 cts.Cancel();
                 await task;
             }
-            //Console.WriteLine("return");
+
+            }
+            catch (Exception e)
+            {
+                myLog("\n\nMainEC Exception:", false);
+                myLog("----------------------------------------------", false);
+                myLog(e.Message, false);
+            }
             return; /* remove this to run real world sample*/            
         }
-
         static void listMappedVariables(List<SlaveInfo> slaves)
         {
             var message = new StringBuilder();
@@ -379,7 +383,6 @@ namespace fcHMI
             //Console.ReadLine();
             Environment.Exit(1);
         }
-
         static async Task MainECMasterTester()
         {
 
