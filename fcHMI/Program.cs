@@ -39,13 +39,11 @@ namespace fcHMI
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
             mainForm = new Form1();
-            MainECMaster();
-            Application.Run(mainForm);
-            }
-            catch (Exception e)
-            {
-                myLog(e.Message);
-            }
+            //MainECMaster();
+            myLog("Form1 created, starting Controller thread");
+            MainECMasterTester();
+            myLog("Controller thread started, running window");
+            Application.Run(mainForm);         
         }
 
         static void myLog(string sMsg, bool bAddStamp = true)
@@ -58,10 +56,9 @@ namespace fcHMI
 
             Console.WriteLine(sOutput);
             sMessage += sOutput + Environment.NewLine;
-            //if (mainForm != null)
-            //mainForm.SetLog(sMessage);
-        }
-        
+            if (mainForm != null)
+            mainForm.SetLog(sMessage);
+        }        
         static async Task MainECMaster()
         {
             try
@@ -401,21 +398,34 @@ namespace fcHMI
         static async Task MainECMasterTester()
         {
 
-            Console.WriteLine("ver 231102.00");
+            myLog("ver 231121.00");
+            
             var cts = new CancellationTokenSource();
             var task = Task.Run(() =>
             {
                 var sleepTime = 1000;
-
+                
                 while (!cts.IsCancellationRequested)
                 {
                     //cts.Cancel();
                     Thread.Sleep(sleepTime);
-                    Console.WriteLine("master lives " + sMessage);
+                    myLog("master lives");
+                    //Console.WriteLine("master lives");
+                    if (mainForm != null && mainForm.bStop)
+                    {
+                        //event_1.Set();
+                        cts.Cancel();
+                    }
                 }
             }, cts.Token);
 
+            myLog("task.Id:" + task.ToString());
+            //Console.ReadKey(true);
+            //event_1.WaitOne();
+            myLog("Waiting for the task");
+            //cts.Cancel();
             await task;
+            myLog("Task is done");
         }
     }       
 }

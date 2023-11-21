@@ -34,6 +34,7 @@ namespace fcHMI
             this.txtTargetPosition = new System.Windows.Forms.TextBox();
             this.btMove = new System.Windows.Forms.Button();
             this.txtConsole = new System.Windows.Forms.TextBox();
+            this.btStop = new System.Windows.Forms.Button();
             this.SuspendLayout();
             // 
             // btRead
@@ -79,11 +80,22 @@ namespace fcHMI
             this.txtConsole.Size = new System.Drawing.Size(776, 279);
             this.txtConsole.TabIndex = 4;
             // 
+            // btStop
+            // 
+            this.btStop.Location = new System.Drawing.Point(406, 117);
+            this.btStop.Name = "btStop";
+            this.btStop.Size = new System.Drawing.Size(88, 36);
+            this.btStop.TabIndex = 5;
+            this.btStop.Text = "Stop";
+            this.btStop.UseVisualStyleBackColor = true;
+            this.btStop.Click += new System.EventHandler(this.btStop_Click);
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(9F, 20F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(800, 450);
+            this.Controls.Add(this.btStop);
             this.Controls.Add(this.txtConsole);
             this.Controls.Add(this.btMove);
             this.Controls.Add(this.txtTargetPosition);
@@ -103,6 +115,7 @@ namespace fcHMI
         private System.Windows.Forms.TextBox txtTargetPosition;
         private System.Windows.Forms.Button btMove;
         private System.Windows.Forms.TextBox txtConsole;
+        private System.Windows.Forms.Button btStop;
     }
 }
 
