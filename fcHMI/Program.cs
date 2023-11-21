@@ -15,6 +15,8 @@ using EtherCAT.NET.Infrastructure;
 using EtherCAT.NET.Extension;
 
 using System.Configuration;
+using System.Runtime.ExceptionServices;
+using System.Security;
 
 namespace fcHMI
 {
@@ -22,18 +24,28 @@ namespace fcHMI
     {
         public static string sMessage;
         public static Form1 mainForm;
+        private static AutoResetEvent event_1 = new AutoResetEvent(false);
         /// <summary>
         /// The main entry point for the application.
         /// </summary>
-        [STAThread]
+        [STAThread]        
         static void Main()
         {
+            try
+            {
+
+           
             System.AppDomain.CurrentDomain.UnhandledException += UnhandledExceptionTrapper;
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
             mainForm = new Form1();
             MainECMaster();
-            Application.Run(mainForm);         
+            Application.Run(mainForm);
+            }
+            catch (Exception e)
+            {
+                myLog(e.Message);
+            }
         }
 
         static void myLog(string sMsg, bool bAddStamp = true)
@@ -46,9 +58,10 @@ namespace fcHMI
 
             Console.WriteLine(sOutput);
             sMessage += sOutput + Environment.NewLine;
-            if (mainForm != null)
-            mainForm.SetLog(sMessage);
-        }        
+            //if (mainForm != null)
+            //mainForm.SetLog(sMessage);
+        }
+        
         static async Task MainECMaster()
         {
             try
@@ -71,11 +84,11 @@ namespace fcHMI
             /* Copy native file. NOT required in end user scenarios, where EtherCAT.NET package is installed via NuGet! */
             var codeBase = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
 
-            Directory.EnumerateFiles(Path.Combine(codeBase, "runtimes"), "*soem_wrapper.*", SearchOption.AllDirectories).ToList().ForEach(filePath =>
-            {
-                if (filePath.Contains(RuntimeEnvironment.RuntimeArchitecture))
-                    File.Copy(filePath, Path.Combine(codeBase, Path.GetFileName(filePath)), true);
-            });
+            //Directory.EnumerateFiles(Path.Combine(codeBase, "runtimes"), "*soem_wrapper.*", SearchOption.AllDirectories).ToList().ForEach(filePath =>
+            //{
+            //    if (filePath.Contains(RuntimeEnvironment.RuntimeArchitecture))
+            //        File.Copy(filePath, Path.Combine(codeBase, Path.GetFileName(filePath)), true);
+            //});
 
             /* create logger */
             var loggerFactory = LoggerFactory.Create(loggingBuilder =>
@@ -337,13 +350,14 @@ namespace fcHMI
                     //}
                 }, cts.Token);
 
-                //Console.WriteLine("waiting for the key...");
-                /* wait for stop signal */
-                Console.ReadKey(true);
+                    //Console.WriteLine("waiting for the key...");
+                    /* wait for stop signal */
+                    //Console.ReadKey(true);
+                    //event_1.WaitOne();
 
-                cts.Cancel();
-                await task;
-            }
+                    //cts.Cancel();
+                    await task;
+                }
 
             }
             catch (Exception e)
@@ -374,6 +388,7 @@ namespace fcHMI
             Console.WriteLine(message.ToString().TrimEnd());
             //logger.LogInformation(message.ToString().TrimEnd());
         }
+        [HandleProcessCorruptedStateExceptions, SecurityCritical]
         static void UnhandledExceptionTrapper(object sender, UnhandledExceptionEventArgs e)
         {
             myLog("\n\nApplication failed with unhandled exception:", false);
@@ -381,7 +396,7 @@ namespace fcHMI
             myLog(e.ExceptionObject.ToString(), false);
             myLog("\n\nPress Enter to continue", false);
             //Console.ReadLine();
-            Environment.Exit(1);
+            //Environment.Exit(1);
         }
         static async Task MainECMasterTester()
         {
